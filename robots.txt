@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://librarytb.co.kr/sitemap.xml
