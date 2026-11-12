@@ -1946,10 +1946,10 @@ function gCastle(c, max){
   const P = (...xy) => xy.map(([x, y]) => R(x, y, 1, 1, ck)).join("");
   const smoke = (x, y) => `<g class="gsmoke">${R(x, y, 2, 2, "#77726a")}${R(x + 1, y - 3, 2, 2, "#8f8a80")}${R(x - 1, y - 5, 3, 2, "#a9a498")}</g>`;
   const fire = (x, y) => `<g class="gfire">${R(x, y - 2, 3, 2, "#e2574c")}${R(x + 1, y - 4, 1, 2, "#e2574c")}${R(x, y - 3, 1, 1, "#e2574c")}${R(x + 1, y - 2, 1, 2, "#f6c445")}</g>`;
-  const dusk = st >= 3, sky = dusk ? ["#e59a6c", "#f0b885", "#f8d8ab"] : ["#7cc4f0", "#9bd3f5", "#c3e6fa"], cl = dusk ? "#fbe6cc" : "#fff";
+  const dusk = st >= 3, sky = dusk ? ["#e59a6c", "#f0b885", "#f8d8ab"] : ["#5c94fc", "#7aa9fd", "#a4c5fe"], cl = dusk ? "#fbe6cc" : "#fff";
   const scene = R(0, 0, 41, 14, sky[0]) + R(0, 14, 41, 7, sky[1]) + R(0, 21, 41, 5, sky[2])
     + R(3, 3, 6, 1, cl) + R(2, 4, 8, 1, cl) + R(31, 6, 5, 1, cl) + R(30, 7, 7, 1, cl)
-    + R(0, 26, 41, 4, "#5fb548") + R(0, 26, 41, 1, "#8ad66a") + [[2, 28], [9, 29], [16, 28], [27, 29], [34, 28], [39, 29]].map(([x, y]) => R(x, y, 1, 1, "#3f8f2c")).join("");
+    + R(0, 23, 5, 3, "#3cab4a") + R(1, 22, 3, 1, "#3cab4a") + R(36, 24, 5, 2, "#3cab4a") + R(37, 23, 3, 1, "#3cab4a") + R(0, 26, 41, 1, "#5fd04a") + R(0, 27, 41, 3, "#c84c0c") + R(0, 27, 41, .3, "#1b1b1b") + [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40].map(x => R(x, 27, .3, 1.5, "#1b1b1b") + R(x + 2, 28.5, .3, 1.5, "#1b1b1b")).join("") + R(0, 28.5, 41, .3, "#1b1b1b") ;
   const open = (label) => `<svg class="gcsvg" viewBox="0 0 205 150" shape-rendering="crispEdges" role="img" aria-label="${esc(c.name)} 성 — ${label}">${scene}`;
   if(st === 4) return open("함락")
     + R(5, 21, 8, 5, B, 1) + R(5, 19, 3, 2, B, 1) + R(10, 20, 2, 1, B, 1)
@@ -2589,7 +2589,7 @@ gStudentInject = async function(){
   document.querySelectorAll("[data-w]").forEach(card => { const a = m[card.dataset.w]; if(a && !card.querySelector(".aibox")) card.insertAdjacentHTML("beforeend", aiHtml(a, true)); });
 };
 
-// ================= 레트로(16비트풍) 테마 =================
+// ================= 테마: 레트로 뼈대 → 색 → 뉴트로 마감 (뒤 블록이 앞 블록을 덮는다) =================
 // 원칙: 제목·버튼·숫자·딱지는 도트 글꼴(Galmuri, OFL), 읽는 문장은 Noto Sans KR 그대로.
 // 믿음이·원장 그림은 손대지 않고 도트 액자에만 넣는다.
 (function(){
@@ -2773,6 +2773,198 @@ gStudentInject = async function(){
   .aibtn small{color:#eef0f5;font-size:13px}
   .aispin{border-radius:0;animation-timing-function:steps(4)}
   @media print{html,body{background:#fff}.card,.gcs{box-shadow:none;border:1px solid #999}}
+  `;
+  document.head.appendChild(st);
+})();
+
+// ---- 색 입히기: 파란 하늘·빨강·벽돌·코인 노랑·검은 외곽선 (점프 액션 게임풍, 특정 게임의 캐릭터·그림은 쓰지 않음) ----
+(function(){
+  const st = document.createElement("style");
+  st.textContent = `
+  :root{--navy:#1b1b1b;--gold:#c77800;--ink:#1b1b1b;--sub:#4a4f5c;--line:#c9d6e2;--soft:#fff6d6;--bg:#d6ecfb;
+    --px:#1b1b1b;--pxs:#8db4d6;--sun:#fbd000;--sund:#b07a00;--red:#e23b2e;--redd:#9c1f16;--sky:#5c94fc;--brick:#c84c0c;--pipe:#2faa3f;--piped:#1b6e27;--ok:#1f8a3b;--bad:#d42a1e}
+  html,body{background-color:var(--bg);background-image:linear-gradient(rgba(255,255,255,.55) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.55) 1px,transparent 1px);background-size:16px 16px}
+  /* 머리띠: 하늘 + 구름 + 벽돌 바닥 */
+  .top{box-shadow:none;margin-bottom:22px;padding-bottom:14px;
+    background:linear-gradient(#fff,#fff) 62% 22%/36px 6px no-repeat,linear-gradient(#fff,#fff) calc(62% + 0px) 34%/52px 8px no-repeat,linear-gradient(#fff,#fff) 90% 58%/28px 6px no-repeat,linear-gradient(#fff,#fff) 91% 68%/44px 8px no-repeat,linear-gradient(#fff,#fff) 38% 12%/20px 5px no-repeat,linear-gradient(#fff,#fff) 38.5% 20%/32px 6px no-repeat,var(--sky)}
+  .top::after{content:"";position:absolute;left:0;right:0;bottom:-14px;height:14px;background-color:var(--brick);border-top:3px solid var(--px);border-bottom:3px solid var(--px);
+    background-image:linear-gradient(rgba(255,255,255,.35) 0 2px,transparent 2px),repeating-linear-gradient(90deg,transparent 0 21px,var(--px) 21px 24px)}
+  .top .brand{color:var(--sun);text-shadow:1px 1px 0 #000,-1px 1px 0 #000,1px -1px 0 #000,-1px -1px 0 #000}
+  .top h1{color:#fff;text-shadow:2px 2px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000}
+  .top .chip{background:#fff;color:var(--px);border:2px solid var(--px);box-shadow:0 3px 0 rgba(0,0,0,.35)}
+  .sndbtn{background:#fff;color:var(--px);border:2px solid var(--px)}
+  /* 카드·버튼 */
+  .card h2{color:var(--px);border-bottom-color:var(--line)}
+  .coach{--fc:#1b1b1b;background:#fff6d6}
+  .gstudy.on{--fc:#1b1b1b;box-shadow:var(--fr),0 8px 0 0 var(--pipe)}
+  .btn{background:var(--red);color:#fff;text-shadow:1px 1px 0 var(--redd);box-shadow:-3px 0 0 #000,3px 0 0 #000,0 -3px 0 #000,0 3px 0 #000,inset 0 -5px 0 var(--redd),inset 0 3px 0 rgba(255,255,255,.3)}
+  .btn:active:not(:disabled){box-shadow:-3px 0 0 #000,3px 0 0 #000,0 -3px 0 #000,0 3px 0 #000,inset 0 3px 0 var(--redd)}
+  .btn.gold{background:var(--sun);color:var(--px);text-shadow:none;box-shadow:-3px 0 0 #000,3px 0 0 #000,0 -3px 0 #000,0 3px 0 #000,inset 0 -5px 0 var(--sund),inset 0 3px 0 rgba(255,255,255,.55)}
+  .btn.ghost{background:#fff;color:var(--px);text-shadow:none;box-shadow:-3px 0 0 #000,3px 0 0 #000,0 -3px 0 #000,0 3px 0 #000,inset 0 -5px 0 #cfd8e0}
+  .field:focus,textarea:focus{outline:3px solid var(--sun)}
+  .tabs button,.wtabs button{box-shadow:0 4px 0 var(--pxs)}
+  .tabs button.on,.wtabs button.on{background:var(--red);color:#fff;border-color:var(--px);box-shadow:0 4px 0 var(--redd);text-shadow:1px 1px 0 var(--redd)}
+  .stat{background:#fff6d6}
+  .stat b{color:var(--red)}
+  .big,.done .big{color:var(--sun);text-shadow:3px 3px 0 #000}
+  .glv{background:var(--red);color:#fff;box-shadow:2px 2px 0 #000}
+  th,.brd th{background:var(--brick);color:#fff}
+  .qtag{background:var(--red)}
+  .stage{color:var(--px);border-color:var(--px);background:var(--sun)}
+  .dday{color:var(--red)}
+  .msg{border-left-color:var(--sun);background:#fffbe8}
+  .msg b{color:var(--brick)}
+  .toast{background:#1b1b1b}
+  .prog i{background:var(--pipe)}
+  .para u{border-bottom-color:var(--red);color:var(--px)}
+  .opt.ok{background:#dff5e3}.opt.bad{background:#fde3e0}
+  .chip{color:var(--px)}
+  details summary{color:var(--px)}
+  .gbtn.main{color:var(--px)}
+  /* 공성전 */
+  .gbanner{color:#fff;box-shadow:-3px 0 0 #000,3px 0 0 #000,0 -3px 0 #000,0 3px 0 #000,0 8px 0 0 var(--pipe);
+    background:linear-gradient(#fff,#fff) 78% 16%/30px 6px no-repeat,linear-gradient(#fff,#fff) 77.5% 28%/46px 7px no-repeat,linear-gradient(#fff,#fff) 97% 52%/22px 5px no-repeat,linear-gradient(#fff,#fff) 97% 61%/34px 6px no-repeat,var(--sky)}
+  .gbanner b{color:var(--sun);text-shadow:2px 2px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000}
+  .gbanner span{color:#fff;font-weight:700;text-shadow:1px 1px 0 rgba(0,0,0,.6)}
+  .gbanner .tbart{border-color:var(--px)}
+  .gname{color:var(--px)}
+  .gbar.xp i{background-color:var(--sun)}
+  .gbar.hp i{background-color:var(--pipe)}
+  .gpill{background:#fff}
+  .gpill.fire{background:#ffe9d6}
+  .gdog .q{border-color:var(--px);color:var(--px);background:var(--sun)}
+  .gquote{border-left-color:var(--red)}
+  .gquote .en{color:var(--px)}
+  .gsay .bb b{color:var(--red)}
+  .gtix{background:#fff6d6}
+  .gb.rew{background:var(--sun)}
+  .gb.pen{background:#fff;color:var(--bad);border-color:var(--bad)}
+  .grk.me{background:#fff3a8}
+  .gmvp{background:#fff6d6;box-shadow:0 4px 0 var(--sund)}
+  .gmvp .t{color:var(--brick)}
+  .gcs.mine{background:#fff6d6;box-shadow:var(--fr),0 8px 0 0 var(--sun)}
+  .gcs .tag.lead{background:var(--red);color:#fff}
+  .gclock{color:var(--px)}.gstudy.on .gclock{color:var(--ok)}
+  .gprize{background:#fff6d6}
+  /* 믿음이에게 물어보기: 초록 블록 */
+  .aibox{background:#fffbe8}
+  .aibox h4{color:var(--brick)}
+  .aibtn{background:var(--pipe);box-shadow:-3px 0 0 #000,3px 0 0 #000,0 -3px 0 #000,0 3px 0 #000,inset 0 4px 0 rgba(255,255,255,.35),inset 0 -6px 0 var(--piped),0 8px 0 0 var(--pxs)}
+  .aibtn img{border-color:var(--px)}
+  .aibtn b{color:#fff;text-shadow:2px 2px 0 #000}
+  .aibtn small{color:#fff;font-weight:700}
+  .foot{color:var(--sub)}
+  `;
+  document.head.appendChild(st);
+})();
+
+// ---- 뉴트로: 둥근 모서리 + 굵은 검은 외곽선 + 딱 떨어지는 그림자(스티커 느낌). 제목은 간판체(도현, OFL), 도트는 캐릭터·성·하트·숫자에만 ----
+(function(){
+  const ln = document.createElement("link"); ln.rel = "stylesheet"; ln.href = "https://cdn.jsdelivr.net/npm/@fontsource/do-hyeon@5.2.5/index.css"; document.head.appendChild(ln);
+  const st = document.createElement("style");
+  st.textContent = `
+  :root{--num:'Galmuri11','Do Hyeon','Noto Sans KR',sans-serif;--pf:'Do Hyeon','Noto Sans KR',system-ui,sans-serif;--pf14:'Do Hyeon','Noto Sans KR',system-ui,sans-serif;
+    --bg:#fdf6e3;--pxs:#1b1b1b;--line:#e4dccb;--sky:#6aa8ff;--red:#f0483e;--redd:#b92a22;--sun:#ffd23f;--sund:#c79a00;--pipe:#35b56a;--piped:#1f7f47;--soft:#fff7d6;
+    --o:2.5px solid #1b1b1b;--sh:4px 4px 0 #1b1b1b;--sh3:3px 3px 0 #1b1b1b;--sh2:2px 2px 0 #1b1b1b}
+  html{font-synthesis:style}
+  html,body{background-color:var(--bg);background-image:radial-gradient(rgba(27,27,27,.09) 1.2px,transparent 1.4px);background-size:18px 18px}
+  .top{border-bottom:var(--o);box-shadow:0 5px 0 var(--sun),0 7.5px 0 #1b1b1b;margin-bottom:18px;padding-bottom:12px;
+    background:radial-gradient(circle at 60% 30%,#fff 0 9px,transparent 10px),radial-gradient(circle at calc(60% + 13px) 36%,#fff 0 12px,transparent 13px),radial-gradient(circle at calc(60% + 28px) 34%,#fff 0 8px,transparent 9px),radial-gradient(circle at 90% 70%,#fff 0 8px,transparent 9px),radial-gradient(circle at calc(90% + 11px) 74%,#fff 0 10px,transparent 11px),radial-gradient(circle at 36% 16%,#fff 0 6px,transparent 7px),radial-gradient(circle at calc(36% + 9px) 19%,#fff 0 8px,transparent 9px),var(--sky)}
+  .top::after{display:none}
+  .top .brand{font-family:var(--num);font-size:12px}
+  .top h1{font-family:var(--pf);font-weight:400;font-size:27px;letter-spacing:0;text-shadow:2.5px 2.5px 0 #1b1b1b,-1px -1px 0 #1b1b1b,1px -1px 0 #1b1b1b,-1px 1px 0 #1b1b1b}
+  .top .chip{font-family:var(--pf);font-size:14px;border:var(--o);border-radius:999px;box-shadow:var(--sh2);padding:3px 11px}
+  .sndbtn{border-radius:999px}
+  .card{border:var(--o);border-radius:18px;box-shadow:var(--sh);margin:0 4px 18px 0}
+  .card h2{font-family:var(--pf);font-size:20px;border-bottom:0;padding-bottom:0;margin-bottom:10px}
+  .card h2 .muted,.card h2 small{font-size:12.5px}
+  .coach{border:var(--o);border-radius:18px;box-shadow:var(--sh)}
+  .gstudy.on{box-shadow:4px 4px 0 var(--pipe),4px 4px 0 2.5px #1b1b1b}
+  .btn,.btn.gold,.btn.ghost{font-family:var(--pf);font-size:20px;border:var(--o);border-radius:14px;box-shadow:var(--sh);margin:0 4px 4px 0;width:calc(100% - 4px);padding:12px 10px;text-shadow:none;transition:transform .06s,box-shadow .06s}
+  .btn:active:not(:disabled),.btn.gold:active:not(:disabled),.btn.ghost:active:not(:disabled){transform:translate(3px,3px);box-shadow:1px 1px 0 #1b1b1b}
+  .btn.sm{font-size:15px;width:auto;border-radius:10px;box-shadow:var(--sh2);padding:6px 12px;border-width:2px}
+  .field,textarea,.card textarea{border:var(--o)!important;border-radius:12px!important;box-shadow:none}
+  .tabs button,.wtabs button{font-family:var(--pf);font-size:17px;border:var(--o);border-radius:999px;box-shadow:var(--sh2);padding:8px 2px}
+  .tabs button.on,.wtabs button.on{box-shadow:var(--sh2);text-shadow:none}
+  .tabs button:active,.wtabs button:active,.opt:active,.gpick button:active,.gb:active:not(:disabled),.aibtn:active:not(:disabled),.gbtn:active{transform:translate(2px,2px)}
+  .stat{border:var(--o);border-radius:14px;box-shadow:var(--sh3)}
+  .stat b{font-family:var(--num)}
+  .big,.done .big{font-family:var(--num);text-shadow:3px 3px 0 #1b1b1b}
+  .badge,.gpill,.gchip,.gwarn,.qtag,.stage,.gcs .tag{font-family:var(--pf);font-size:13.5px;border-radius:999px;padding:2px 9px}
+  .gpill,.badge,.stage{border:2px solid #1b1b1b}
+  .glv{font-family:var(--num);font-weight:700;font-size:12px;border-radius:8px;border:2px solid #1b1b1b;box-shadow:var(--sh2)}
+  th,.brd th{font-family:var(--pf);font-size:14px}
+  .brd{border-radius:12px;outline:0;border:var(--o);border-collapse:separate;border-spacing:0;overflow:hidden}
+  .bar,.prog{border-radius:999px;border:2px solid #1b1b1b;overflow:hidden}
+  .msg,.fb{border-radius:12px}.fb .ctx,.fb .why,.coach .note{border-radius:8px}
+  .msg{border:2px solid #1b1b1b;border-left:8px solid var(--sun)}
+  .toast{font-family:var(--pf);font-size:17px;border-radius:999px;border:var(--o);background:var(--sun);color:#1b1b1b;box-shadow:var(--sh3)}
+  .kv span:last-child,.dday,.prow .pl{font-family:var(--num)}
+  .opt{border:var(--o);border-radius:14px;box-shadow:var(--sh3)}
+  .opt.ok,.opt.bad{box-shadow:var(--sh3)}
+  .chip{border:2px solid #1b1b1b;border-radius:999px;box-shadow:var(--sh2)}
+  .spk{border-radius:50%;border:2px solid #1b1b1b}
+  .blank{border-radius:6px}.blank i{border-radius:50%}
+  .wz_drop{border-radius:16px;border:2.5px dashed #1b1b1b}
+  .wz_stu label{border-radius:999px;border:2px solid #1b1b1b}
+  .prow select,.prow input,.grow input,.grow select,.gset input,.wz_row input{border-radius:10px;border:2px solid #1b1b1b}
+  .gtitle{font-family:var(--pf);font-weight:400}
+  .glabel{font-family:var(--pf);border-radius:999px}
+  .gpose{border-radius:22px}.gstat{border-radius:12px}.gstat b{font-family:var(--num)}
+  .ggbar{border-radius:999px;overflow:hidden}
+  .gbtn{font-family:var(--pf);border-radius:14px}
+  .gbtn.main{border:var(--o);box-shadow:var(--sh)}
+  .gpop,.combo{border-radius:18px;border:var(--o)}.gpop b,.combo b{font-family:var(--num)}
+  .gbanner{border:var(--o);border-radius:18px;box-shadow:var(--sh);margin:0 4px 18px 0;
+    background:radial-gradient(circle at 80% 26%,#fff 0 8px,transparent 9px),radial-gradient(circle at calc(80% + 12px) 32%,#fff 0 11px,transparent 12px),radial-gradient(circle at calc(80% + 26px) 30%,#fff 0 7px,transparent 8px),radial-gradient(circle at 96% 74%,#fff 0 7px,transparent 8px),var(--sky)}
+  .gbanner b{font-family:var(--pf);font-weight:400;font-size:26px;text-shadow:2.5px 2.5px 0 #1b1b1b,-1px -1px 0 #1b1b1b,1px -1px 0 #1b1b1b,-1px 1px 0 #1b1b1b}
+  .gbanner span{text-shadow:1px 1px 0 rgba(0,0,0,.55)}
+  .tbart{border:var(--o);border-radius:12px}
+  .tbart.sq{box-shadow:var(--sh3);border-radius:16px}
+  .gava{border:var(--o)!important;border-radius:16px;box-shadow:var(--sh3)}
+  .gava svg{border-radius:13px}
+  .gava.sm{border-width:2px!important;border-radius:10px;box-shadow:none}.gava.sm svg{border-radius:8px}
+  .gava .wp{border-radius:50%;border:2px solid #1b1b1b}
+  .gname{font-family:var(--pf);font-weight:400;font-size:22px}
+  .gclock{font-family:var(--num)}
+  .gbar{border:var(--o);border-radius:999px;overflow:hidden;height:20px}
+  .gbar.castle{height:22px}
+  .gcap span:last-child{font-family:var(--num)}
+  .gdog{border-radius:14px;border:2px dashed #1b1b1b}
+  .gdog .q{border-radius:12px;border:var(--o);font-family:var(--pf)}
+  .gtodo .p,.gent .p,.gfeed .p,.grk .no,.grk .tm,.gms .mk small{font-family:var(--num)}
+  .gtix{border-radius:14px;border:2px dashed #1b1b1b}
+  .gpick button{font-family:var(--pf);font-size:17px;border:var(--o);border-radius:14px;box-shadow:var(--sh3)}
+  .gpick button.on{box-shadow:var(--sh3)}
+  .gpick button.sw{border-radius:50%;border:var(--o)}
+  .gb{font-family:var(--pf);font-size:14.5px;border-radius:999px;box-shadow:var(--sh2);padding:7px 11px}
+  .gb.neu{border:2px solid #1b1b1b;color:#1b1b1b}
+  .gquote{border:var(--o);border-left:9px solid var(--red);border-radius:14px;box-shadow:var(--sh3)}
+  .gsay .bb{border:var(--o);border-radius:14px;box-shadow:var(--sh3)}
+  .gprize{border:var(--o);border-radius:18px;box-shadow:var(--sh)}
+  .gprize.none{box-shadow:none}
+  .gprize b{font-family:var(--pf)}
+  .gprize:not(.none)::before,.gprize:not(.none)::after{border-radius:50%}
+  .grk{border-bottom:1.5px dashed var(--line)}
+  .grk.me{border-radius:10px;outline:2px solid #1b1b1b}
+  .gmvp{border:var(--o);border-radius:14px;box-shadow:var(--sh3)}
+  .gmvp.none{box-shadow:none}
+  .gmvp .t{font-family:var(--pf);font-size:13.5px}
+  .gfield{gap:14px;padding:0 4px 4px 0}
+  .gcs,.gcs.mine{border:var(--o);border-radius:16px;box-shadow:var(--sh);overflow:hidden}
+  .gcsvg{border-bottom:var(--o)}
+  .gcs>h3{font-family:var(--pf);font-size:18px}
+  .gcs .gcap span:first-child{font-family:var(--num)}
+  .gcs .tag,.gcs .tag.lead{top:6px;border:2px solid #1b1b1b;box-shadow:var(--sh2)}
+  .aibox{border:var(--o);border-radius:16px;box-shadow:var(--sh3)}
+  .aibox .hd{font-family:var(--pf);font-size:18px}
+  .aibox h4{font-family:var(--pf);font-size:14.5px}
+  .aibox .cc,.aibox details{border-radius:10px;border:2px solid var(--line)}
+  .aibtn{border:var(--o);border-radius:18px;box-shadow:var(--sh);margin:0 4px 18px 0;width:calc(100% - 4px)}
+  .aibtn img{border-radius:50%;border:var(--o)}
+  .aibtn b{font-family:var(--pf);font-weight:400;font-size:23px;text-shadow:2px 2px 0 #1b1b1b}
+  .aispin{border-radius:50%}
+  @media print{.card,.gcs{box-shadow:none}}
   `;
   document.head.appendChild(st);
 })();
