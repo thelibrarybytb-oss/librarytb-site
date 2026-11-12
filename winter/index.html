@@ -1958,7 +1958,7 @@ function gWarHtml(war, myClan){
 const gHM = m => `${Math.floor((m || 0) / 60)}시간 ${(m || 0) % 60}분`;
 const gHpPer = () => ((G.me && G.me.hp_max) || (G.board && G.board.cfg && G.board.cfg.hp_max) || 100) / 10;
 const gHeartN = hp => Math.round(hp / gHpPer() * 2) / 2;
-const gPts = e => [e.pts ? gSign(e.pts) : "", e.hp ? `❤️+${gHeartN(e.hp)}` : ""].filter(Boolean).join(" ");
+const gPts = e => e.key === "bust" ? (e.pts ? `🏰 ${gSign(e.pts)}` : "") : [e.pts ? gSign(e.pts) : "", e.hp ? `❤️+${gHeartN(e.hp)}` : ""].filter(Boolean).join(" ");
 const gClock = sec => { sec = Math.max(0, Math.floor(sec)); const p = n => String(n).padStart(2, "0"); return `${p(Math.floor(sec / 3600))}:${p(Math.floor(sec / 60) % 60)}:${p(sec % 60)}`; };
 // 공부 타이머 아래에서 돌아가는 명언 [영어, 한글, 출처]. 고전·속담 위주(저작권 만료), 출처가 불확실한 유명 문구는 넣지 않음.
 const G_QUOTES = [
@@ -2098,7 +2098,7 @@ function gStudyCard(m){
     <div class="gquote" id="gquote" data-i="${gQuoteIdx(gStudySec(st))}">${gQuoteHtml(gQuoteIdx(gStudySec(st)))}</div>
     <button class="btn ${st.running ? "ghost" : "gold"}" id="gtimer" style="margin-top:10px">${st.running ? "■ 공부 끝 (멈추기)" : "▶ 공부 시작"}</button>
     <p class="muted" style="margin-top:8px">${shield ? `🛡️ 방패병: 공부 1시간마다 우리 성 보호막 +${st.shield}` : `${(G_KLASS[m.profile.klass] || ["⚔️"])[0]} 공부 1시간마다 공격 +${st.atk}`} · 한 번에 최대 ${st.cap}분까지 인정되고, 넘으면 자동으로 멈춥니다.</p>
-    <p class="gwarnline">🚨 조교가 불시에 확인합니다. 켜두고 딴짓하다 걸리면 <b>그 시간만큼 마이너스</b>.</p>
+    <p class="gwarnline">🚨 조교가 불시에 확인합니다. 켜두고 딴짓하다 걸리면 <b>그 시간만큼 마이너스</b>, 그리고 <b>우리 성에 포탄</b>이 떨어집니다.</p>
     ${last ? `<div class="gms"><div class="gbar xp"><i style="width:${Math.min(100, Math.round(st.today / last * 100))}%"></i></div>
       ${ms.map(x => `<span class="mk${st.today >= x ? " got" : ""}" style="left:${Math.round(x / last * 100)}%">🎁<small>${x % 60 ? x + "분" : x / 60 + "시간"}</small></span>`).join("")}</div>
       <p class="muted" style="margin-top:26px">${next ? `다음 뽑기권까지 ${gHM(next - st.today)}` : "오늘 뽑기권을 모두 얻었습니다."}</p>` : ""}
@@ -2203,26 +2203,21 @@ async function renderGame(){
   const lw = gWinner(m.last_war);
   const coupons = m.coupons || [], live = coupons.filter(c => !c.used);
   const byDay = {}; ents.forEach(e => (byDay[e.day] = byDay[e.day] || []).push(e));
+  $(".wrap").classList.add("gwrap");
   $(".wrap").innerHTML = `
     ${m.dog_new ? `<div class="card" style="border-color:var(--gold);background:#fffaf0;text-align:center">${gArt("kn_win", "lg nf")}<h2 style="font-size:18px;margin-top:8px">믿음이가 합류했습니다!</h2><p class="muted">${m.dog_streak}일 연속 달성. 이제 믿음이가 함께 싸웁니다.</p></div>` : ""}
     <div class="gbanner">${gArt(gWinner(m.war) && gWinner(m.war).id === m.profile.clan ? "kn_win" : m.profile.klass === "shield" ? "kn_guard" : m.profile.clan && gWinner(m.war) ? "kn_attack" : "kn_idle", "nf kb")}<div><b>윈터 공성전</b><span>${m.profile.clan ? (gWinner(m.war) ? (gWinner(m.war).id === m.profile.clan ? "우리 클랜이 앞서는 중. 끝까지 지켜라." : "지금은 밀리는 중. 오늘 공부로 뒤집자.") : "아직 승부가 안 났다. 먼저 치는 쪽이 이긴다.") : "공부한 만큼 성을 지키고, 상대 성을 무너뜨린다."}</span></div></div>
-    <div class="card"><h2>이번 주 공성전 <span class="muted" style="font-weight:400">· 일요일 밤 마감</span></h2>
+    <div class="gcol gl"><div class="card"><h2>이번 주 공성전 <span class="muted" style="font-weight:400">· 일요일 밤 마감</span></h2>
       ${lw ? `<p class="muted" style="margin-bottom:6px">지난주 승리: <b style="color:var(--navy)">${esc(lw.emoji)} ${esc(lw.name)}</b></p>` : ""}
       ${m.profile.clan ? "" : `<p class="muted" style="margin-bottom:6px">아직 클랜 배정 전입니다.</p>`}
       ${gWarHtml(m.war, m.profile.clan)}
       ${(m.war.clans || []).length ? gMvpHtml(m) : ""}
       <p class="muted" style="margin-top:6px">우리 가점은 상대 성을 깎고, 우리 벌점은 우리 성을 깎습니다. 점수는 클랜 인원 평균으로 계산합니다.</p>
-      ${(m.war.feed || []).length ? `<details class="gfold"><summary>전투 기록 보기</summary>${m.war.feed.slice(0, 12).map(f => { const c = (m.war.clans || []).find(x => x.id === f.clan); return `<div class="gfeed"><span>${f.pts > 0 ? "🗡️" : "💥"} ${c ? esc(c.emoji) : ""} ${f.name && f.pts > 0 ? `<b>${esc(f.name)}</b> · ${esc(f.label)}` : `<b>${c ? esc(c.name) : "클랜"}</b> · 벌점`}</span><span class="p ${f.pts > 0 ? "plus" : "minus"}" style="font-weight:900;color:${f.pts > 0 ? "var(--ok)" : "var(--bad)"}">${gSign(f.pts)}</span></div>`; }).join("")}</details>` : ""}
+      ${(m.war.feed || []).length ? `<details class="gfold"><summary>전투 기록 보기</summary>${m.war.feed.slice(0, 12).map(f => { const c = (m.war.clans || []).find(x => x.id === f.clan); return `<div class="gfeed"><span>${f.pts > 0 ? "🗡️" : "💥"} ${c ? esc(c.emoji) : ""} ${f.name && f.pts > 0 ? `<b>${esc(f.name)}</b> · ${esc(f.label)}` : `<b>${c ? esc(c.name) : "클랜"}</b> · ${f.key === "bust" || f.label === "포탄" ? "💣 포탄" : "벌점"}`}</span><span class="p ${f.pts > 0 ? "plus" : "minus"}" style="font-weight:900;color:${f.pts > 0 ? "var(--ok)" : "var(--bad)"}">${gSign(f.pts)}</span></div>`; }).join("")}</details>` : ""}
     </div>
-    ${gStudyCard(m)}
     <div class="card"><h2>오늘의 공격 기회</h2>
       ${todo.map(([ok, r, sub]) => `<div class="gtodo"><span class="ic">${ok ? "✅" : "⬜"}</span><div style="flex:1"><b>${esc(r.emoji)} ${esc(r.label)}</b> <span class="p" style="color:var(--ok);white-space:nowrap">${gCoin()}+${r.pts}</span><div class="muted">${esc(sub)}</div></div></div>`).join("")}
     </div>
-    ${hall ? `<div class="card"><h2>🏆 오늘의 순공 랭킹 <span class="muted" style="font-weight:400">· 타이머 기준, 실시간</span></h2>
-      ${gRankHtml(hall.today, "아직 아무도 타이머를 켜지 않았다. 지금 켜면 1등.")}
-      ${hall.today.length && !hall.today.some(r => r.me) ? `<p class="muted" style="margin-top:6px">나는 지금 ${gHM(hall.my_min)}. 10위 안에 들면 이름이 올라갑니다.</p>` : ""}
-      ${gRankMe(hall)}
-      <details style="margin-top:8px"><summary class="muted" style="cursor:pointer;font-weight:800">어제 랭킹 보기</summary>${gRankHtml(hall.yesterday, "어제 기록이 없습니다.")}</details></div>` : ""}
     <div class="card">
       <div class="ghero">${gAvatar(m.profile, false, m.level)}<div style="flex:1;min-width:0">
         <div class="gname">${esc(m.name)}${hall && hall.me.school ? ` <small class="muted" style="font-weight:500;font-size:13px">${esc(hall.me.school)} ${esc(hall.me.grade || "")}</small>` : ""}</div>
@@ -2238,16 +2233,27 @@ async function renderGame(){
         : `<div class="gdog"><div class="q">?</div><div><b style="color:var(--navy)">동료가 기다리고 있습니다</b><div class="muted">${m.dog_streak}일 연속 가점을 받으면 합류합니다. 지금 ${Math.min(m.streak, m.dog_streak)} / ${m.dog_streak}일</div></div></div>`}
       <button class="btn sm ghost" id="gedit" style="margin-top:12px">캐릭터 바꾸기</button>
     </div>
+    </div><div class="gcol gr">${gStudyCard(m)}
+    ${hall ? `<div class="card"><h2>🏆 오늘의 순공 랭킹 <span class="muted" style="font-weight:400">· 타이머 기준, 실시간</span></h2>
+      ${gRankHtml(hall.today, "아직 아무도 타이머를 켜지 않았다. 지금 켜면 1등.")}
+      ${hall.today.length && !hall.today.some(r => r.me) ? `<p class="muted" style="margin-top:6px">나는 지금 ${gHM(hall.my_min)}. 10위 안에 들면 이름이 올라갑니다.</p>` : ""}
+      ${gRankMe(hall)}
+      <details style="margin-top:8px"><summary class="muted" style="cursor:pointer;font-weight:800">어제 랭킹 보기</summary>${gRankHtml(hall.yesterday, "어제 기록이 없습니다.")}</details></div>` : ""}
     <details class="card gfold"${live.length ? " open" : ""}><summary><h2>쿠폰함 ${live.length ? `<span class="badge new">${live.length}</span>` : ""}</h2></summary>
       ${coupons.map(c => `<div class="gtix${c.used ? " used" : ""}"><div><b>🎟 ${esc(c.name)}</b>${c.descr ? `<div class="muted">${esc(c.descr)}</div>` : ""}</div><span class="muted">${c.used ? "사용함" : "조교에게 보여 주세요"}</span></div>`).join("") || `<p class="muted">아직 쿠폰이 없습니다.</p>`}
       ${m.next_coupon ? `<p class="muted" style="margin-top:6px">다음 쿠폰: Lv.${m.next_coupon.level}에 <b>${esc(m.next_coupon.name)}</b></p>` : ""}
     </details>
     <details class="card gfold"><summary><h2>내 점수 기록 (최근 2주)</h2></summary>
       ${Object.keys(byDay).sort().reverse().map(day => `<p class="muted" style="margin-top:8px;font-weight:800">${fmtDay(day)}</p>` + byDay[day].map(e => `<div class="gent"><span>${esc(e.label)}${e.note ? ` <span class="muted">${esc(e.note)}</span>` : ""}</span><span class="p ${e.pts < 0 ? "minus" : "plus"}">${gPts(e)}</span></div>`).join("")).join("") || `<p class="muted">아직 기록이 없습니다. 오늘 계획부터 채워 보세요.</p>`}
-    </details>`;
+    </details></div>`;
   $("#gedit").onclick = () => { G.picking = true; clearInterval(G.tick); renderGame(); };
   gStudyBind(m);
   gWarFx(m);
+  clearInterval(G.poll);
+  G.poll = setInterval(async () => {
+    if(W.tab !== "game" || S.mode !== "home" || document.hidden || !document.querySelector(".gbanner") || document.querySelector("#gdrawok, .gbox3")) return;
+    try{ const sig = x => JSON.stringify(((x.war || {}).clans || []).map(c => c.hp)), old = sig(G.me), nm = await gLoad(true); if(nm && sig(nm) !== old && W.tab === "game") renderGame(); }catch(e){}
+  }, 30000);
 }
 
 // 지난 접속 이후 성 체력이 깎였으면 흔들림 + 피해 숫자 + 믿음이 돌진
@@ -2260,7 +2266,7 @@ function gWarFx(m){
     for(const c of m.war.clans){
       const d = (prev.hp[c.id] == null ? c.hp : prev.hp[c.id]) - c.hp; if(d <= 0) continue;
       const el = document.querySelector(`.gcs[data-cid="${c.id}"]`); if(!el) continue;
-      el.classList.add("hit"); el.insertAdjacentHTML("beforeend", `<span class="gdmg${c.id === m.profile.clan ? " own" : ""}">−${d}</span>`);
+      el.classList.add("hit"); const ci = el.querySelector(".gcimg"); if(ci) ci.insertAdjacentHTML("beforeend", `<i class="gball"></i><i class="gboom"></i>`); el.insertAdjacentHTML("beforeend", `<span class="gdmg${c.id === m.profile.clan ? " own" : ""}">−${d}</span>`);
       if(c.id !== m.profile.clan) enemyHit = true;
     }
     if(enemyHit){ const b = document.querySelector(".gbanner img"); if(b){ const o = b.src; b.src = IMG("kn_attack"); b.classList.add("dash"); setTimeout(() => { b.src = o; b.classList.remove("dash"); }, 1700); } }
@@ -2505,7 +2511,7 @@ const _renderWinter = render;
 render = function(){
   const h = location.hash;
   if(!h.startsWith("#r/") && h !== "#ta" && h !== "#admin" && S.mode === "home" && W.tab === "game") return renderGame();
-  clearInterval(G.tick);
+  clearInterval(G.tick); clearInterval(G.poll);
   const r = _renderWinter(); Promise.resolve(r).then(gDress); setTimeout(gDress, 700);
   return r;
 };
@@ -2600,6 +2606,9 @@ gStudentInject = async function(){
   if(!m) return;
   document.querySelectorAll("[data-w]").forEach(card => { const a = m[card.dataset.w]; if(a && !card.querySelector(".aibox")) card.insertAdjacentHTML("beforeend", aiHtml(a, true)); });
 };
+
+// 홈 화면에 추가했을 때(아이패드·갤럭시 탭) 주소창 없이 전체 화면으로
+(function(){ [["apple-mobile-web-app-capable", "yes"], ["mobile-web-app-capable", "yes"], ["apple-mobile-web-app-status-bar-style", "black-translucent"], ["theme-color", "#16243F"]].forEach(([n, c]) => { if(!document.querySelector(`meta[name="${n}"]`)){ const m = document.createElement("meta"); m.name = n; m.content = c; document.head.appendChild(m); } }); })();
 
 // ================= 테마: 믿음이 일러스트 기준 =================
 // 색은 믿음이 그림에서: 네이비(스웨터) · 따뜻한 노랑(털) · 크림. 선은 그림과 같은 짙은 네이비 외곽선, 모서리는 살짝만 둥글게.
@@ -2781,6 +2790,66 @@ gStudentInject = async function(){
   .gempty{display:block;width:120px;height:120px;object-fit:contain;margin:0 auto 6px}
   .gph{font-size:14px;background:var(--cream);border:1.5px dashed var(--ol);border-radius:8px;padding:7px 10px;margin-bottom:12px;color:var(--ink)}
   .gph b{color:var(--navy)}
+
+  /* 포탄 */
+  .gball{position:absolute;left:-10%;top:-30%;width:16px;height:16px;border-radius:50%;background:#1d2a4a;box-shadow:inset -3px -3px 0 rgba(255,255,255,.25);animation:gball .6s cubic-bezier(.3,0,.9,.6) forwards;z-index:3}
+  .gboom{position:absolute;left:50%;top:48%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:radial-gradient(circle,#fff 0 20%,#F5B82E 21% 55%,#e8574c 56% 75%,transparent 76%);opacity:0;animation:gboom .5s .55s ease-out forwards;z-index:3}
+  .gcs.hit .gcimg img{animation-delay:.55s}
+  .gdmg{animation-delay:.55s;opacity:0}
+  @keyframes gball{0%{left:-10%;top:-30%}100%{left:48%;top:46%;opacity:1}}
+  @keyframes gboom{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(9)}}
+  @media(prefers-reduced-motion:reduce){.gball,.gboom{display:none}}
+
+  /* 순서: 폰은 성 → 타이머 → 공격 기회 → 랭킹 → 내 캐릭터 → 접힌 기록 */
+  .gwrap{display:flex;flex-direction:column}
+  .gwrap .gcol{display:contents}
+  .gwrap .gl>:nth-child(1){order:1}.gwrap .gr>:nth-child(1){order:2}
+  .gwrap .gl>:nth-child(2){order:3}.gwrap .gr>:nth-child(2){order:4}
+  .gwrap .gl>:nth-child(3){order:5}.gwrap .gr>:nth-child(n+3){order:6}
+
+  /* 태블릿(아이패드·갤럭시 탭): 넓게, 공성전은 2단 */
+  @media(min-width:760px){
+    body{font-size:17px}
+    .wrap{max-width:860px;padding:20px 24px}
+    .wtabs{max-width:860px;padding:0 24px;gap:10px}
+    .wtabs button,.tabs button{font-size:19px;padding:13px 4px}
+    .top{padding:18px 28px 16px}
+    .top h1{font-size:30px}
+    .card{padding:20px}
+    .card h2{font-size:22px}
+    .muted{font-size:14.5px}
+    .btn{font-size:21px;padding:15px}
+    .field{font-size:18px;padding:15px 16px}
+    .opt{font-size:19px;padding:18px}
+    .prompt{font-size:40px}.prompt.kr{font-size:30px}.para{font-size:22px}
+    .stat b{font-size:28px}
+    .prow{grid-template-columns:80px 110px 1fr 54px;gap:10px}
+    .prow select,.prow input{font-size:17px;padding:12px 10px}
+    .prow .dn{font-size:30px}
+    .gwrap{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:0 20px;align-items:start;max-width:1120px}
+    .gwrap>*{grid-column:1 / -1}
+    .gwrap .gcol{display:block;grid-column:auto;min-width:0}
+    .gwrap+.foot,.wtabs:has(+.gwrap),.wtabs{max-width:1120px}
+    .gbanner{padding:10px 18px}
+    .gbanner b{font-size:30px}.gbanner span{font-size:16px}
+    .tbart.kb{width:120px;height:120px;flex-basis:120px}
+    .gclock{font-size:40px!important;letter-spacing:0}
+    .tbart.sq{width:96px;height:96px;flex-basis:96px}
+    .gava{width:112px;height:112px;flex-basis:112px}
+    .gava.sm{width:38px;height:38px;flex-basis:38px}
+    .gname{font-size:26px}
+    .ghearts svg{width:30px;height:27px}
+    .gcimg img{max-width:230px}
+    .gcs>h3{font-size:20px}
+    .grk{font-size:16px;padding:10px 8px}
+    .gquote .en,.gquote .ko{font-size:17px}
+    .gtodo,.gent,.gfeed{font-size:15.5px}
+    .aibtn img{width:120px;height:120px;flex-basis:120px}
+    .aibtn b{font-size:26px}
+    .glogin img{width:130px;height:130px;flex-basis:130px}.glogin b{font-size:28px}
+    .gpick button{font-size:19px;padding:15px 8px}
+  }
+  @media(min-width:1100px){.gwrap{max-width:1240px}.wtabs{max-width:1240px}.gcimg img{max-width:250px}.gclock{font-size:54px!important}.tbart.sq{width:120px;height:120px;flex-basis:120px}}
   @media print{html,body{background:#fff}.card,.gcs{box-shadow:none}}
   `;
   document.head.appendChild(st);
