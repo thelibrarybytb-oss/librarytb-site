@@ -1842,6 +1842,12 @@ const gNotReady = e => /tb_g_|PGRST202|function/i.test(String(e && e.message || 
   .tbart{width:72px;height:96px;object-fit:cover;border-radius:12px;flex:0 0 72px;border:1px solid var(--line)}
   .tbart.sq{width:84px;height:84px;flex-basis:84px;object-fit:contain;background:var(--soft);padding:3px}
   .tbart.pop{animation:gpopin .45s ease-out}
+  .gquote{border-left:4px solid var(--gold);background:var(--soft);border-radius:8px;padding:10px 12px;margin:12px 0 4px}
+  .gquote .en{font-size:14px;line-height:1.5;color:var(--navy);font-weight:700;font-style:italic}
+  .gquote .ko{font-size:14px;line-height:1.55;margin-top:5px}
+  .gquote .src{font-size:11px;color:var(--sub);margin-top:5px}
+  .gquote.pop{animation:gfadein .6s ease-out}
+  @keyframes gfadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   .tbart.sm{width:54px;height:72px;flex-basis:54px}
   .tbart.lg{width:104px;height:140px;flex-basis:104px}
   .gbanner{display:flex;gap:12px;align-items:center;background:var(--navy);color:#fff;border-radius:14px;padding:12px;margin-bottom:12px;border-bottom:3px solid var(--gold)}
@@ -1946,6 +1952,124 @@ function gWarHtml(war, myClan){
 const gHM = m => `${Math.floor((m || 0) / 60)}시간 ${(m || 0) % 60}분`;
 const gPts = e => e.hp ? `❤️+${e.hp}` : e.pts ? gSign(e.pts) : "";
 const gClock = sec => { sec = Math.max(0, Math.floor(sec)); const p = n => String(n).padStart(2, "0"); return `${p(Math.floor(sec / 3600))}:${p(Math.floor(sec / 60) % 60)}:${p(sec % 60)}`; };
+// 공부 타이머 아래에서 돌아가는 명언 [영어, 한글, 출처]. 고전·속담 위주(저작권 만료), 출처가 불확실한 유명 문구는 넣지 않음.
+const G_QUOTES = [
+["It is not that we have a short time to live, but that we waste much of it.", "우리가 사는 시간이 짧은 게 아니다. 우리가 그 많은 부분을 낭비하는 것이다.", "세네카 · 인생의 짧음에 대하여"],
+["While we are postponing, life speeds by.", "우리가 미루는 동안 인생은 달아난다.", "세네카 · 도덕 서한 1"],
+["We suffer more often in imagination than in reality.", "우리는 현실보다 상상 속에서 더 자주 괴로워한다.", "세네카 · 도덕 서한 13"],
+["No wind is favorable to one who does not know to which port he sails.", "어느 항구로 가는지 모르는 사람에게는 어떤 바람도 순풍이 아니다.", "세네카 · 도덕 서한 71"],
+["As long as you live, keep learning how to live.", "살아 있는 한, 사는 법을 계속 배워라.", "세네카 · 도덕 서한 76"],
+["It is not because things are difficult that we do not dare; it is because we do not dare that they are difficult.", "어려워서 감히 못 하는 것이 아니다. 감히 하지 않아서 어려운 것이다.", "세네카 · 도덕 서한 104"],
+["Men learn while they teach.", "사람은 가르치면서 배운다.", "세네카 · 도덕 서한 7"],
+["Waste no more time arguing what a good man should be. Be one.", "좋은 사람이 어떤 사람인지 따지는 데 시간을 더 쓰지 마라. 그런 사람이 되어라.", "마르쿠스 아우렐리우스 · 명상록 10.16"],
+["Do every act of your life as though it were the last.", "삶의 모든 행동을 마지막인 것처럼 하라.", "마르쿠스 아우렐리우스 · 명상록 2.5"],
+["The soul is dyed with the color of its thoughts.", "영혼은 자기 생각의 색으로 물든다.", "마르쿠스 아우렐리우스 · 명상록 5.16"],
+["What hinders the work becomes part of the work; the obstacle on the road becomes the road.", "일을 가로막는 것이 일의 일부가 되고, 길 위의 장애물이 곧 길이 된다.", "마르쿠스 아우렐리우스 · 명상록 5.20"],
+["When you find it hard to rise in the morning, think: I am getting up to do a human being's work.", "아침에 일어나기 힘들 때 이렇게 생각하라. 나는 사람이 할 일을 하러 일어난다.", "마르쿠스 아우렐리우스 · 명상록 5.1"],
+["If a thing is humanly possible, consider it within your own reach.", "사람이 할 수 있는 일이라면 너도 해낼 수 있다고 여겨라.", "마르쿠스 아우렐리우스 · 명상록 6.19"],
+["It is impossible for a man to learn what he thinks he already knows.", "이미 안다고 생각하는 것은 배울 수 없다.", "에픽테토스 · 담화록 2.17"],
+["First say to yourself what you would be; and then do what you have to do.", "먼저 네가 무엇이 되고 싶은지 스스로에게 말하라. 그다음 해야 할 일을 하라.", "에픽테토스 · 담화록 3.23"],
+["No great thing is created suddenly.", "위대한 것은 어느 것도 갑자기 만들어지지 않는다.", "에픽테토스 · 담화록 1.15"],
+["Men are disturbed not by things, but by the views they take of them.", "사람을 흔드는 것은 일 자체가 아니라 그 일을 바라보는 생각이다.", "에픽테토스 · 엥케이리디온 5"],
+["All men by nature desire to know.", "모든 사람은 본성적으로 알고 싶어 한다.", "아리스토텔레스 · 형이상학"],
+["One swallow does not make a summer.", "제비 한 마리가 왔다고 여름이 되지는 않는다.", "아리스토텔레스 · 니코마코스 윤리학 1.7"],
+["We become just by doing just acts, temperate by doing temperate acts, brave by doing brave acts.", "정의로운 일을 해야 정의로워지고, 절제하는 일을 해야 절제하게 되며, 용감한 일을 해야 용감해진다.", "아리스토텔레스 · 니코마코스 윤리학 2.1"],
+["The roots of education are bitter, but the fruit is sweet.", "배움의 뿌리는 쓰지만 그 열매는 달다.", "아리스토텔레스의 말로 전함 (디오게네스 라에르티오스)"],
+["We are what we repeatedly do. Excellence, then, is not an act but a habit.", "우리는 우리가 반복해서 하는 것이다. 그러니 탁월함은 행동이 아니라 습관이다.", "윌 듀런트 · 철학 이야기 (아리스토텔레스 요약)"],
+["The beginning is the most important part of the work.", "어떤 일이든 시작이 가장 중요하다.", "플라톤 · 국가"],
+["The unexamined life is not worth living.", "돌아보지 않는 삶은 살 가치가 없다.", "소크라테스 · 플라톤 『변론』"],
+["If you add a little to a little, and do this often, soon that little will become great.", "작은 것에 작은 것을 보태고 그것을 자주 하면, 곧 큰 것이 된다.", "헤시오도스 · 일과 날"],
+["Much learning does not teach understanding.", "많이 아는 것이 곧 깨달음을 주지는 않는다.", "헤라클레이토스 · 단편 40"],
+["The mind is not a vessel to be filled but a fire to be kindled.", "정신은 채워야 할 그릇이 아니라 불붙여야 할 불씨다.", "플루타르코스 · 듣는 법에 대하여"],
+["Slow and steady wins the race.", "느려도 꾸준한 쪽이 경주에서 이긴다.", "이솝 우화 · 토끼와 거북"],
+["He who has begun has half done. Dare to be wise; begin!", "시작한 사람은 이미 절반을 한 것이다. 과감히 지혜로워져라. 시작하라!", "호라티우스 · 서간시 1.2"],
+["Seize the day.", "오늘을 붙잡아라.", "호라티우스 · 송가 1.11"],
+["They can because they think they can.", "할 수 있다고 믿기에 할 수 있다.", "베르길리우스 · 아이네이스 5"],
+["Fortune favors the bold.", "행운은 용감한 자의 편이다.", "베르길리우스 · 아이네이스 10"],
+["Work conquers all.", "노력은 모든 것을 이긴다.", "베르길리우스 · 농경시 1"],
+["Dripping water hollows out a stone.", "떨어지는 물방울이 돌을 뚫는다.", "오비디우스 · 흑해에서 보낸 편지"],
+["Either do not attempt at all, or go through with it.", "아예 시작하지 말든지, 시작했으면 끝까지 가라.", "오비디우스 · 사랑의 기술"],
+["The beginnings of all things are small.", "모든 일의 시작은 작다.", "키케로 · 최고선악론"],
+["Practice is the best of all instructors.", "연습이 가장 좋은 스승이다.", "푸블릴리우스 시루스 · 격언집"],
+["Not a day without a line.", "한 줄도 긋지 않고 보내는 날은 없게 하라.", "라틴 격언 (화가 아펠레스의 습관)"],
+["Make haste slowly.", "천천히 서둘러라.", "라틴 격언 Festina lente"],
+["Through hardships to the stars.", "고난을 지나 별에 이른다.", "라틴 격언 Per aspera ad astra"],
+["Repetition is the mother of learning.", "반복은 배움의 어머니다.", "라틴 격언"],
+["Dare to know! Have courage to use your own understanding.", "과감히 알려고 하라! 네 자신의 이성을 쓸 용기를 가져라.", "칸트 · 계몽이란 무엇인가"],
+["To learn and at due times to practice what one has learned, is that not a pleasure?", "배우고 때때로 익히면 또한 기쁘지 아니한가. (學而時習之 不亦說乎)", "공자 · 논어 학이"],
+["When you know a thing, hold that you know it; when you do not, admit that you do not. This is knowledge.", "아는 것을 안다고 하고 모르는 것을 모른다고 하는 것, 이것이 아는 것이다. (知之爲知之 不知爲不知 是知也)", "공자 · 논어 위정"],
+["Learning without thought is labor lost; thought without learning is perilous.", "배우기만 하고 생각하지 않으면 얻는 것이 없고, 생각만 하고 배우지 않으면 위태롭다. (學而不思則罔 思而不學則殆)", "공자 · 논어 위정"],
+["He who knows it is not equal to him who loves it; he who loves it is not equal to him who delights in it.", "아는 사람은 좋아하는 사람만 못하고, 좋아하는 사람은 즐기는 사람만 못하다. (知之者不如好之者 好之者不如樂之者)", "공자 · 논어 옹야"],
+["Do not worry that no one knows you; seek to be worthy of being known.", "남이 나를 알아주지 않음을 걱정하지 말고, 알려질 만한 사람이 되기를 구하라. (不患莫己知 求爲可知也)", "공자 · 논어 이인"],
+["To see what is right and not do it is want of courage.", "옳은 것을 보고도 하지 않는 것은 용기가 없는 것이다. (見義不爲 無勇也)", "공자 · 논어 위정"],
+["When I walk with two others, I will surely find my teacher among them.", "세 사람이 길을 가면 그 가운데 반드시 내 스승이 있다. (三人行 必有我師焉)", "공자 · 논어 술이"],
+["He who by reviewing the old can gain knowledge of the new is fit to be a teacher.", "옛것을 익혀 새것을 알면 스승이 될 만하다. (溫故而知新 可以爲師矣)", "공자 · 논어 위정"],
+["A journey of a thousand miles begins with a single step.", "천 리 길도 발밑에서 시작된다. (千里之行 始於足下)", "노자 · 도덕경 64장"],
+["He who conquers others is strong; he who conquers himself is mighty.", "남을 이기는 자는 힘이 있고, 자신을 이기는 자는 강하다. (勝人者有力 自勝者强)", "노자 · 도덕경 33장"],
+["Learning must never stop.", "배움은 그쳐서는 안 된다. (學不可以已)", "순자 · 권학편"],
+["Blue comes from the indigo plant, yet it is bluer than the plant.", "푸른색은 쪽에서 나왔지만 쪽보다 더 푸르다. (靑出於藍而靑於藍)", "순자 · 권학편"],
+["The victorious army wins first and then seeks battle.", "이기는 군대는 먼저 이겨 놓고 싸움을 건다. (勝兵先勝而後求戰)", "손자병법 · 군형편"],
+["Dost thou love life? Then do not squander time, for that is the stuff life is made of.", "인생을 사랑하는가? 그렇다면 시간을 낭비하지 마라. 인생은 시간으로 이루어져 있으니.", "벤저민 프랭클린 · 가난한 리처드의 달력"],
+["Lost time is never found again.", "잃어버린 시간은 다시 찾을 수 없다.", "벤저민 프랭클린 · 가난한 리처드의 달력"],
+["Little strokes fell great oaks.", "작은 도끼질이 큰 참나무를 쓰러뜨린다.", "벤저민 프랭클린 · 가난한 리처드의 달력"],
+["Diligence is the mother of good luck.", "근면은 행운의 어머니다.", "벤저민 프랭클린 · 가난한 리처드의 달력"],
+["Well done is better than well said.", "말을 잘하는 것보다 잘 해내는 것이 낫다.", "벤저민 프랭클린 · 가난한 리처드의 달력"],
+["There are no gains without pains.", "수고 없이는 얻는 것도 없다.", "벤저민 프랭클린 · 부자가 되는 길"],
+["Have you somewhat to do tomorrow? Do it today.", "내일 할 일이 있는가? 오늘 하라.", "벤저민 프랭클린 · 가난한 리처드의 달력"],
+["One today is worth two tomorrows.", "오늘 하루는 내일 이틀의 값어치가 있다.", "벤저민 프랭클린 · 가난한 리처드의 달력"],
+["Plough deep while sluggards sleep, and you shall have corn to sell and to keep.", "게으른 자들이 잘 때 깊이 갈아라. 그러면 팔 곡식도 남길 곡식도 생긴다.", "벤저민 프랭클린 · 가난한 리처드의 달력"],
+["The reward of a thing well done is to have done it.", "잘 해낸 일의 보상은 그 일을 해냈다는 것이다.", "랠프 월도 에머슨 · 수필집"],
+["Nothing great was ever achieved without enthusiasm.", "열정 없이 이루어진 위대한 일은 없다.", "랠프 월도 에머슨 · 원(Circles)"],
+["Do the thing and you shall have the power.", "그 일을 하라. 그러면 힘이 생긴다.", "랠프 월도 에머슨 · 보상(Compensation)"],
+["Trust thyself: every heart vibrates to that iron string.", "너 자신을 믿어라. 모든 마음은 그 강철 현에 맞춰 울린다.", "랠프 월도 에머슨 · 자기 신뢰"],
+["If one advances confidently in the direction of his dreams, he will meet with a success unexpected in common hours.", "꿈의 방향으로 자신 있게 나아가면, 평범한 시간에는 기대하지 못한 성공을 만나게 된다.", "헨리 데이비드 소로 · 월든"],
+["It is not enough to be industrious; so are the ants. What are you industrious about?", "부지런한 것만으로는 부족하다. 개미도 부지런하다. 너는 무엇에 부지런한가?", "헨리 데이비드 소로 · 1857년 편지"],
+["Always bear in mind that your own resolution to succeed is more important than any other one thing.", "해내겠다는 너 자신의 결심이 다른 무엇보다 중요하다는 것을 늘 기억하라.", "에이브러햄 링컨 · 1855년 편지"],
+["He who has a why to live can bear almost any how.", "살아야 할 이유를 가진 사람은 거의 어떤 방식의 삶도 견딘다.", "니체 · 우상의 황혼"],
+["What does not kill me makes me stronger.", "나를 죽이지 못하는 것은 나를 더 강하게 만든다.", "니체 · 우상의 황혼"],
+["Become who you are.", "너 자신이 되어라.", "니체 · 즐거운 학문 (핀다로스에게서)"],
+["He who would learn to fly one day must first learn to stand and walk and run and climb and dance; one cannot fly into flying.", "언젠가 나는 법을 배우려는 자는 먼저 서고 걷고 달리고 오르고 춤추는 법을 배워야 한다. 단번에 날아오를 수는 없다.", "니체 · 차라투스트라는 이렇게 말했다"],
+["All truly great thoughts are conceived while walking.", "진정으로 위대한 생각은 모두 걷는 중에 떠오른다.", "니체 · 우상의 황혼"],
+["Knowing is not enough; we must apply. Willing is not enough; we must do.", "아는 것만으로는 부족하다. 써먹어야 한다. 하려는 마음만으로는 부족하다. 해야 한다.", "괴테 · 빌헬름 마이스터의 편력시대"],
+["Without haste, but without rest.", "서두르지 말되, 쉬지도 마라.", "괴테 · 온순한 크세니엔"],
+["All the unhappiness of men arises from one single fact, that they cannot stay quietly in their own room.", "사람의 모든 불행은 단 하나, 자기 방에 조용히 머물러 있지 못하는 데서 온다.", "파스칼 · 팡세"],
+["It is not enough to have a good mind; the main thing is to use it well.", "좋은 머리를 가진 것만으로는 부족하다. 중요한 것은 그것을 잘 쓰는 일이다.", "데카르트 · 방법서설"],
+["Knowledge itself is power.", "아는 것 자체가 힘이다.", "프랜시스 베이컨 · 성스러운 명상"],
+["Reading maketh a full man; conference a ready man; and writing an exact man.", "읽기는 사람을 가득 차게 하고, 토론은 준비된 사람으로, 쓰기는 정확한 사람으로 만든다.", "프랜시스 베이컨 · 학문에 대하여"],
+["Iron rusts from disuse; even so does inaction sap the vigor of the mind.", "쇠는 쓰지 않으면 녹슨다. 마찬가지로 하지 않으면 정신의 힘도 빠진다.", "레오나르도 다빈치 · 수기"],
+["I am still learning.", "나는 아직도 배우고 있다. (Ancora imparo)", "미켈란젤로의 말로 전함"],
+["What we hope ever to do with ease, we must learn first to do with diligence.", "언젠가 쉽게 하고 싶은 일은 먼저 부지런히 하는 법부터 배워야 한다.", "새뮤얼 존슨"],
+["Great works are performed not by strength but by perseverance.", "위대한 일은 힘이 아니라 끈기로 이루어진다.", "새뮤얼 존슨 · 라셀라스"],
+["All things are difficult before they are easy.", "모든 일은 쉬워지기 전에는 어렵다.", "토머스 풀러 · 격언집"],
+["If I have seen further, it is by standing on the shoulders of giants.", "내가 더 멀리 보았다면, 그것은 거인들의 어깨 위에 서 있었기 때문이다.", "아이작 뉴턴 · 1675년 편지"],
+["Chance favors only the prepared mind.", "우연은 준비된 정신에게만 미소 짓는다.", "루이 파스퇴르 · 1854년 강연"],
+["Genius is one percent inspiration and ninety-nine percent perspiration.", "천재는 1%의 영감과 99%의 땀이다.", "토머스 에디슨"],
+["Our main business is not to see what lies dimly at a distance, but to do what lies clearly at hand.", "우리가 할 일은 멀리 희미하게 보이는 것을 바라보는 것이 아니라, 눈앞에 분명히 놓인 것을 하는 일이다.", "토머스 칼라일 · 시대의 징후"],
+["The heights by great men reached and kept were not attained by sudden flight, but they, while their companions slept, were toiling upward in the night.", "위대한 사람들이 올라 지킨 높이는 단번의 비상으로 얻은 것이 아니다. 그들은 동료들이 자는 동안 밤새 위로 올랐다.", "롱펠로 · 성 아우구스티누스의 사다리"],
+["To strive, to seek, to find, and not to yield.", "분투하고, 구하고, 찾아내고, 굴복하지 않는다.", "테니슨 · 율리시스"],
+["Our doubts are traitors, and make us lose the good we oft might win by fearing to attempt.", "의심은 배신자다. 시도하기를 두려워하게 만들어, 얻을 수 있었던 것을 잃게 한다.", "셰익스피어 · 자에는 자로"],
+["If you can fill the unforgiving minute with sixty seconds' worth of distance run, yours is the Earth.", "용서 없는 1분을 60초어치의 달리기로 채울 수 있다면, 세상은 네 것이다.", "러디어드 키플링 · 만약에(If)"],
+["Nothing is so fatiguing as the eternal hanging on of an uncompleted task.", "끝내지 않은 일이 계속 매달려 있는 것만큼 사람을 지치게 하는 것은 없다.", "윌리엄 제임스 · 1886년 편지"],
+["Far and away the best prize that life has to offer is the chance to work hard at work worth doing.", "인생이 주는 가장 좋은 상은 할 가치가 있는 일을 열심히 할 기회다.", "시어도어 루스벨트 · 1903년 연설"],
+["Success is to be measured not so much by the position that one has reached in life as by the obstacles which he has overcome.", "성공은 도달한 자리보다 그 과정에서 넘어선 장애물로 재야 한다.", "부커 T. 워싱턴 · 노예에서 일어서다"],
+["If there is no struggle, there is no progress.", "투쟁이 없으면 진보도 없다.", "프레더릭 더글러스 · 1857년 연설"],
+["Practice makes perfect.", "연습이 완벽을 만든다.", "영어 속담"],
+["Rome was not built in a day.", "로마는 하루아침에 이루어지지 않았다.", "서양 속담"],
+["Where there's a will, there's a way.", "뜻이 있는 곳에 길이 있다.", "영어 속담"],
+["Never put off till tomorrow what you can do today.", "오늘 할 수 있는 일을 내일로 미루지 마라.", "영어 속담"],
+["Strike while the iron is hot.", "쇠는 달았을 때 두드려라.", "영어 속담"],
+["Actions speak louder than words.", "행동은 말보다 크게 말한다.", "영어 속담"],
+["Fall seven times, stand up eight.", "일곱 번 넘어져도 여덟 번 일어난다. (七転び八起き)", "일본 속담"],
+["Many a little makes a mickle.", "티끌 모아 태산.", "한국 속담"],
+["Raindrops from the eaves wear a hole in the stone step.", "낙숫물이 댓돌을 뚫는다.", "한국 속담"],
+["A tower built with care does not fall.", "공든 탑이 무너지랴.", "한국 속담"],
+["If you dig a well, dig one well.", "우물을 파도 한 우물을 파라.", "한국 속담"],
+["Even three bushels of beads become a treasure only when strung.", "구슬이 서 말이라도 꿰어야 보배.", "한국 속담"],
+["After hardship comes happiness.", "고생 끝에 낙이 온다.", "한국 속담"]
+];
+// 명언은 공부 5분마다 다음 것으로. 날마다 시작 위치가 달라짐
+function gQuoteIdx(sec){ const d = Math.floor((Date.now() + 9 * 3600e3) / 864e5); return (d * 17 + Math.floor(Math.max(0, sec) / 300)) % G_QUOTES.length; }
+function gQuoteHtml(i){ const q = G_QUOTES[i]; return `<div class="en">${esc(q[0])}</div><div class="ko">${esc(q[1])}</div><div class="src">— ${esc(q[2])}</div>`; }
 // 공부 시간 15분마다 바뀌는 믿음이 (공식 이모티콘·포즈만 사용)
 const G_STUDY_ART = ["mideum_03", "emo_16", "emo_04", "emo_17", "emo_12", "mideum_09", "emo_19", "emo_22", "emo_05", "emo_27", "emo_21", "emo_25", "emo_01", "emo_11", "emo_32", "emo_08", "emo_31", "emo_09", "emo_24", "emo_13", "emo_26", "emo_20", "emo_23", "emo_14", "emo_28", "mideum_05", "mideum_07"].filter(k => ASSETS[k]);
 const gStudyArtIdx = sec => Math.floor(Math.max(0, sec) / 900) % G_STUDY_ART.length;
@@ -1963,6 +2087,7 @@ function gStudyCard(m){
     <h2>⏱ 공부 타이머 ${st.running ? `<span class="badge cleared">공부 중</span>` : ""}</h2>
     <div style="display:flex;gap:12px;align-items:center"><img class="tbart sq" id="gsart" data-i="${gStudyArtIdx(gStudySec(st))}" src="${IMG(G_STUDY_ART[gStudyArtIdx(gStudySec(st))])}" alt="믿음이"><div style="flex:1"><div class="gclock" id="gclock" style="text-align:left;font-size:38px">${gClock(gStudySec(st))}</div>
     <p class="muted">오늘 공부 시간 · 이번 주 ${gHM(st.week)}<br>공부 15분마다 믿음이가 바뀝니다 (${gStudyArtIdx(gStudySec(st)) + 1}/${G_STUDY_ART.length})</p></div></div>
+    <div class="gquote" id="gquote" data-i="${gQuoteIdx(gStudySec(st))}">${gQuoteHtml(gQuoteIdx(gStudySec(st)))}</div>
     <button class="btn ${st.running ? "ghost" : "gold"}" id="gtimer" style="margin-top:10px">${st.running ? "■ 공부 끝 (멈추기)" : "▶ 공부 시작"}</button>
     <p class="muted" style="margin-top:8px">${shield ? `🛡️ 방패병: 공부 1시간마다 우리 성 보호막 +${st.shield}` : `${(G_KLASS[m.profile.klass] || ["⚔️"])[0]} 공부 1시간마다 공격 +${st.atk}`} · 한 번에 최대 ${st.cap}분까지 인정되고, 넘으면 자동으로 멈춥니다.</p>
     ${last ? `<div class="gms"><div class="gbar xp"><i style="width:${Math.min(100, Math.round(st.today / last * 100))}%"></i></div>
@@ -1978,6 +2103,8 @@ function gStudyBind(m){
   if(st.running) G.tick = setInterval(() => {
     const el = $("#gclock"); if(!el || W.tab !== "game"){ clearInterval(G.tick); return; }
     const sec = gStudySec(st); el.textContent = gClock(sec);
+    const qb = $("#gquote"), qi = gQuoteIdx(sec);
+    if(qb && +qb.dataset.i !== qi){ qb.dataset.i = qi; qb.innerHTML = gQuoteHtml(qi); qb.classList.remove("pop"); void qb.offsetWidth; qb.classList.add("pop"); }
     const art = $("#gsart"), ai = gStudyArtIdx(sec);
     if(art && +art.dataset.i !== ai){ art.dataset.i = ai; art.src = IMG(G_STUDY_ART[ai]); art.classList.remove("pop"); void art.offsetWidth; art.classList.add("pop"); const cap = art.parentNode.querySelector("p.muted"); if(cap) cap.innerHTML = cap.innerHTML.replace(/\(\d+\/\d+\)/, `(${ai + 1}/${G_STUDY_ART.length})`); }
     if((Date.now() + G.skew - new Date(st.started).getTime()) / 60000 >= st.cap){ clearInterval(G.tick); toast("최대 시간이 되어 타이머가 멈췄습니다. 계속하려면 다시 시작하세요"); gLoad(true).then(renderGame); }
