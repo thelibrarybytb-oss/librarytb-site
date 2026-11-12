@@ -1754,6 +1754,12 @@ function gRankHtml(list, empty){
   if(!list || !list.length) return `<p class="muted">${empty}</p>`;
   return list.map(r => `<div class="grk${r.me ? " me" : ""}"><span class="no">${r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : r.rank}</span><span class="nm">${esc(r.name)}<small>(${esc([r.school, r.grade].filter(Boolean).join(" ") || "학교 미입력")})</small></span><span class="tm">${gHM(r.min)}</span></div>`).join("");
 }
+function gRankMe(h){
+  const out = [], me = (h.today || []).find(r => r.me), third = (h.today || [])[2];
+  if(h.my_yday != null && (h.my_yday > 0 || h.my_min > 0)){ const d = h.my_min - h.my_yday; out.push(d >= 0 ? `어제의 나보다 <b>+${gHM(d)}</b>` : `어제의 나까지 <b>${gHM(-d)}</b>`); }
+  if(third && (!me || me.rank > 3) && third.min > h.my_min) out.push(`3위까지 <b>${gHM(third.min - h.my_min)}</b>`);
+  return out.length ? `<p class="grkme">${out.join(" · ")}</p>` : "";
+}
 function gMvp(war){ let best = null; for(const c of (war && war.clans) || []) for(const m of c.members || []) if(m.atk > 0 && (!best || m.atk > best.atk)) best = { name: m.name, atk: m.atk, clan: c }; return best; }
 function gMvpHtml(m){
   const now = gMvp(m.war), last = gMvp(m.last_war);
@@ -1940,7 +1946,7 @@ function gWarHtml(war, myClan){
   const top = Math.max(...war.clans.map(c => c.hp)), lead = war.clans.filter(c => c.hp === top).length === 1 && war.clans.some(c => c.atk > 0 || c.pen > 0);
   return `<div class="gfield">${war.clans.map(c => {
     const pct = Math.min(100, Math.max(0, Math.round(c.hp / war.max * 100)));
-    return `<div class="gcs${c.id === myClan ? " mine" : ""}">${c.id === myClan ? `<span class="tag">우리 클랜</span>` : ""}${lead && c.hp === top ? `<span class="tag lead">👑 앞서는 중</span>` : ""}
+    return `<div class="gcs${c.id === myClan ? " mine" : ""}" data-cid="${c.id}">${c.id === myClan ? `<span class="tag">우리 클랜</span>` : ""}${lead && c.hp === top ? `<span class="tag lead">👑 앞서는 중</span>` : ""}
       ${gCastle(c, war.max)}
       <h3>${esc(c.name)} <span class="muted" style="font-weight:700">${c.n}명</span></h3>
       <div class="gbar castle hp ${gHpClass(c.hp, war.max)}"><i style="width:${pct}%"></i></div>
@@ -1950,7 +1956,9 @@ function gWarHtml(war, myClan){
 
 // ---------------- 공부 타이머(열품타식) · 뽑기 ----------------
 const gHM = m => `${Math.floor((m || 0) / 60)}시간 ${(m || 0) % 60}분`;
-const gPts = e => e.hp ? `❤️+${e.hp}` : e.pts ? gSign(e.pts) : "";
+const gHpPer = () => ((G.me && G.me.hp_max) || (G.board && G.board.cfg && G.board.cfg.hp_max) || 100) / 10;
+const gHeartN = hp => Math.round(hp / gHpPer() * 2) / 2;
+const gPts = e => [e.pts ? gSign(e.pts) : "", e.hp ? `❤️+${gHeartN(e.hp)}` : ""].filter(Boolean).join(" ");
 const gClock = sec => { sec = Math.max(0, Math.floor(sec)); const p = n => String(n).padStart(2, "0"); return `${p(Math.floor(sec / 3600))}:${p(Math.floor(sec / 60) % 60)}:${p(sec % 60)}`; };
 // 공부 타이머 아래에서 돌아가는 명언 [영어, 한글, 출처]. 고전·속담 위주(저작권 만료), 출처가 불확실한 유명 문구는 넣지 않음.
 const G_QUOTES = [
@@ -2090,6 +2098,7 @@ function gStudyCard(m){
     <div class="gquote" id="gquote" data-i="${gQuoteIdx(gStudySec(st))}">${gQuoteHtml(gQuoteIdx(gStudySec(st)))}</div>
     <button class="btn ${st.running ? "ghost" : "gold"}" id="gtimer" style="margin-top:10px">${st.running ? "■ 공부 끝 (멈추기)" : "▶ 공부 시작"}</button>
     <p class="muted" style="margin-top:8px">${shield ? `🛡️ 방패병: 공부 1시간마다 우리 성 보호막 +${st.shield}` : `${(G_KLASS[m.profile.klass] || ["⚔️"])[0]} 공부 1시간마다 공격 +${st.atk}`} · 한 번에 최대 ${st.cap}분까지 인정되고, 넘으면 자동으로 멈춥니다.</p>
+    <p class="gwarnline">🚨 조교가 불시에 확인합니다. 켜두고 딴짓하다 걸리면 <b>그 시간만큼 마이너스</b>.</p>
     ${last ? `<div class="gms"><div class="gbar xp"><i style="width:${Math.min(100, Math.round(st.today / last * 100))}%"></i></div>
       ${ms.map(x => `<span class="mk${st.today >= x ? " got" : ""}" style="left:${Math.round(x / last * 100)}%">🎁<small>${x % 60 ? x + "분" : x / 60 + "시간"}</small></span>`).join("")}</div>
       <p class="muted" style="margin-top:26px">${next ? `다음 뽑기권까지 ${gHM(next - st.today)}` : "오늘 뽑기권을 모두 얻었습니다."}</p>` : ""}
@@ -2197,10 +2206,22 @@ async function renderGame(){
   $(".wrap").innerHTML = `
     ${m.dog_new ? `<div class="card" style="border-color:var(--gold);background:#fffaf0;text-align:center">${gArt("kn_win", "lg nf")}<h2 style="font-size:18px;margin-top:8px">믿음이가 합류했습니다!</h2><p class="muted">${m.dog_streak}일 연속 달성. 이제 믿음이가 함께 싸웁니다.</p></div>` : ""}
     <div class="gbanner">${gArt(gWinner(m.war) && gWinner(m.war).id === m.profile.clan ? "kn_win" : m.profile.klass === "shield" ? "kn_guard" : m.profile.clan && gWinner(m.war) ? "kn_attack" : "kn_idle", "nf kb")}<div><b>윈터 공성전</b><span>${m.profile.clan ? (gWinner(m.war) ? (gWinner(m.war).id === m.profile.clan ? "우리 클랜이 앞서는 중. 끝까지 지켜라." : "지금은 밀리는 중. 오늘 공부로 뒤집자.") : "아직 승부가 안 났다. 먼저 치는 쪽이 이긴다.") : "공부한 만큼 성을 지키고, 상대 성을 무너뜨린다."}</span></div></div>
+    <div class="card"><h2>이번 주 공성전 <span class="muted" style="font-weight:400">· 일요일 밤 마감</span></h2>
+      ${lw ? `<p class="muted" style="margin-bottom:6px">지난주 승리: <b style="color:var(--navy)">${esc(lw.emoji)} ${esc(lw.name)}</b></p>` : ""}
+      ${m.profile.clan ? "" : `<p class="muted" style="margin-bottom:6px">아직 클랜 배정 전입니다.</p>`}
+      ${gWarHtml(m.war, m.profile.clan)}
+      ${(m.war.clans || []).length ? gMvpHtml(m) : ""}
+      <p class="muted" style="margin-top:6px">우리 가점은 상대 성을 깎고, 우리 벌점은 우리 성을 깎습니다. 점수는 클랜 인원 평균으로 계산합니다.</p>
+      ${(m.war.feed || []).length ? `<details class="gfold"><summary>전투 기록 보기</summary>${m.war.feed.slice(0, 12).map(f => { const c = (m.war.clans || []).find(x => x.id === f.clan); return `<div class="gfeed"><span>${f.pts > 0 ? "🗡️" : "💥"} ${c ? esc(c.emoji) : ""} ${f.name && f.pts > 0 ? `<b>${esc(f.name)}</b> · ${esc(f.label)}` : `<b>${c ? esc(c.name) : "클랜"}</b> · 벌점`}</span><span class="p ${f.pts > 0 ? "plus" : "minus"}" style="font-weight:900;color:${f.pts > 0 ? "var(--ok)" : "var(--bad)"}">${gSign(f.pts)}</span></div>`; }).join("")}</details>` : ""}
+    </div>
     ${gStudyCard(m)}
+    <div class="card"><h2>오늘의 공격 기회</h2>
+      ${todo.map(([ok, r, sub]) => `<div class="gtodo"><span class="ic">${ok ? "✅" : "⬜"}</span><div style="flex:1"><b>${esc(r.emoji)} ${esc(r.label)}</b> <span class="p" style="color:var(--ok);white-space:nowrap">${gCoin()}+${r.pts}</span><div class="muted">${esc(sub)}</div></div></div>`).join("")}
+    </div>
     ${hall ? `<div class="card"><h2>🏆 오늘의 순공 랭킹 <span class="muted" style="font-weight:400">· 타이머 기준, 실시간</span></h2>
       ${gRankHtml(hall.today, "아직 아무도 타이머를 켜지 않았다. 지금 켜면 1등.")}
       ${hall.today.length && !hall.today.some(r => r.me) ? `<p class="muted" style="margin-top:6px">나는 지금 ${gHM(hall.my_min)}. 10위 안에 들면 이름이 올라갑니다.</p>` : ""}
+      ${gRankMe(hall)}
       <details style="margin-top:8px"><summary class="muted" style="cursor:pointer;font-weight:800">어제 랭킹 보기</summary>${gRankHtml(hall.yesterday, "어제 기록이 없습니다.")}</details></div>` : ""}
     <div class="card">
       <div class="ghero">${gAvatar(m.profile, false, m.level)}<div style="flex:1;min-width:0">
@@ -2209,34 +2230,48 @@ async function renderGame(){
         <div class="gbar xp"><i style="width:${xpPct}%"></i></div>
         <div class="gcap"><span>경험치 ${m.xp}</span><span>다음 레벨까지 ${m.lv_to - m.xp}</span></div>
       </div></div>
-      <div style="margin-top:12px"><div class="gcap"><span>❤️ 이번 주 체력</span><span>${m.hp} / ${m.hp_max}</span></div>
+      <div style="margin-top:12px"><div class="gcap"><span>❤️ 이번 주 체력</span><span>하트 ${gHeartN(m.hp)} / 10</span></div>
         ${gHearts(m.hp, m.hp_max)}
-        ${m.hp <= 0 ? `<div class="gsay">${gArt("director_03", "sm")}<div class="bb"><b style="color:var(--bad)">체력이 0이다.</b><br>원장실로 와라. 얘기 좀 하자.</div></div>` : `<p class="muted">벌점을 받으면 깎이고, 월요일마다 회복됩니다.</p>`}</div>
+        ${m.hp <= 0 ? `<div class="gsay">${gArt("director_03", "sm")}<div class="bb"><b style="color:var(--bad)">체력이 0이다.</b><br>오늘 안에 원장실로 와라. 회복 임무를 준다.</div></div>` : `<p class="muted">벌점을 받으면 깎이고, 계획을 클리어하면 한 칸씩 되찾습니다. 월요일에는 모두 회복.</p>`}</div>
       <div style="margin-top:8px"><span class="gpill fire">🔥 연속 ${m.streak}일</span><span class="gpill">${gCoin()}이번 주 공격 ${myAtk}</span>${myPen ? `<span class="gpill" style="background:#fde8e4;color:var(--bad)">벌점 ${myPen}</span>` : ""}</div>
       ${m.dog ? `<div class="gdog"><img src="${gDogImg(m.hp, m.hp_max)}" alt="믿음이"><div><b style="color:var(--navy)">믿음이</b><div class="muted">${m.hp / m.hp_max <= 0.3 ? "체력이 바닥이라 믿음이가 지쳤습니다." : m.hp / m.hp_max <= 0.6 ? "믿음이가 걱정하고 있습니다." : "믿음이가 신나게 따라옵니다."}</div></div></div>`
         : `<div class="gdog"><div class="q">?</div><div><b style="color:var(--navy)">동료가 기다리고 있습니다</b><div class="muted">${m.dog_streak}일 연속 가점을 받으면 합류합니다. 지금 ${Math.min(m.streak, m.dog_streak)} / ${m.dog_streak}일</div></div></div>`}
       <button class="btn sm ghost" id="gedit" style="margin-top:12px">캐릭터 바꾸기</button>
     </div>
-    <div class="card"><h2>오늘의 공격 기회</h2>
-      ${todo.map(([ok, r, sub]) => `<div class="gtodo"><span class="ic">${ok ? "✅" : "⬜"}</span><div style="flex:1"><b>${esc(r.emoji)} ${esc(r.label)}</b> <span class="p" style="color:var(--ok);white-space:nowrap">${gCoin()}+${r.pts}</span><div class="muted">${esc(sub)}</div></div></div>`).join("")}
-    </div>
-    <div class="card"><h2>이번 주 공성전 <span class="muted" style="font-weight:400">· 일요일 밤 마감</span></h2>
-      ${lw ? `<p class="muted" style="margin-bottom:6px">지난주 승리: <b style="color:var(--navy)">${esc(lw.emoji)} ${esc(lw.name)}</b></p>` : ""}
-      ${m.profile.clan ? "" : `<p class="muted" style="margin-bottom:6px">아직 클랜 배정 전입니다.</p>`}
-      ${gWarHtml(m.war, m.profile.clan)}
-      ${(m.war.clans || []).length ? gMvpHtml(m) : ""}
-      <p class="muted" style="margin-top:6px">우리 가점은 상대 성을 깎고, 우리 벌점은 우리 성을 깎습니다. 점수는 클랜 인원 평균으로 계산합니다.</p>
-      ${(m.war.feed || []).length ? `<h2 style="margin-top:12px">전투 기록</h2>${m.war.feed.slice(0, 12).map(f => { const c = (m.war.clans || []).find(x => x.id === f.clan); return `<div class="gfeed"><span>${f.pts > 0 ? "🗡️" : "💥"} ${c ? esc(c.emoji) : ""} <b>${esc(f.name)}</b> · ${esc(f.label)}</span><span class="p ${f.pts > 0 ? "plus" : "minus"}" style="font-weight:900;color:${f.pts > 0 ? "var(--ok)" : "var(--bad)"}">${gSign(f.pts)}</span></div>`; }).join("")}` : ""}
-    </div>
-    <div class="card"><h2>쿠폰함 ${live.length ? `<span class="badge new">${live.length}</span>` : ""}</h2>
+    <details class="card gfold"${live.length ? " open" : ""}><summary><h2>쿠폰함 ${live.length ? `<span class="badge new">${live.length}</span>` : ""}</h2></summary>
       ${coupons.map(c => `<div class="gtix${c.used ? " used" : ""}"><div><b>🎟 ${esc(c.name)}</b>${c.descr ? `<div class="muted">${esc(c.descr)}</div>` : ""}</div><span class="muted">${c.used ? "사용함" : "조교에게 보여 주세요"}</span></div>`).join("") || `<p class="muted">아직 쿠폰이 없습니다.</p>`}
       ${m.next_coupon ? `<p class="muted" style="margin-top:6px">다음 쿠폰: Lv.${m.next_coupon.level}에 <b>${esc(m.next_coupon.name)}</b></p>` : ""}
-    </div>
-    <div class="card"><h2>내 점수 기록 (최근 2주)</h2>
+    </details>
+    <details class="card gfold"><summary><h2>내 점수 기록 (최근 2주)</h2></summary>
       ${Object.keys(byDay).sort().reverse().map(day => `<p class="muted" style="margin-top:8px;font-weight:800">${fmtDay(day)}</p>` + byDay[day].map(e => `<div class="gent"><span>${esc(e.label)}${e.note ? ` <span class="muted">${esc(e.note)}</span>` : ""}</span><span class="p ${e.pts < 0 ? "minus" : "plus"}">${gPts(e)}</span></div>`).join("")).join("") || `<p class="muted">아직 기록이 없습니다. 오늘 계획부터 채워 보세요.</p>`}
-    </div>`;
+    </details>`;
   $("#gedit").onclick = () => { G.picking = true; clearInterval(G.tick); renderGame(); };
   gStudyBind(m);
+  gWarFx(m);
+}
+
+// 지난 접속 이후 성 체력이 깎였으면 흔들림 + 피해 숫자 + 믿음이 돌진
+function gWarFx(m){
+  try{
+    const key = "tb_war_" + S.code, prev = JSON.parse(localStorage.getItem(key) || "null"), cur = { wk: m.war.week, hp: {} };
+    (m.war.clans || []).forEach(c => cur.hp[c.id] = c.hp); localStorage.setItem(key, JSON.stringify(cur));
+    if(!prev || prev.wk !== cur.wk) return;
+    let enemyHit = false;
+    for(const c of m.war.clans){
+      const d = (prev.hp[c.id] == null ? c.hp : prev.hp[c.id]) - c.hp; if(d <= 0) continue;
+      const el = document.querySelector(`.gcs[data-cid="${c.id}"]`); if(!el) continue;
+      el.classList.add("hit"); el.insertAdjacentHTML("beforeend", `<span class="gdmg${c.id === m.profile.clan ? " own" : ""}">−${d}</span>`);
+      if(c.id !== m.profile.clan) enemyHit = true;
+    }
+    if(enemyHit){ const b = document.querySelector(".gbanner img"); if(b){ const o = b.src; b.src = IMG("kn_attack"); b.classList.add("dash"); setTimeout(() => { b.src = o; b.classList.remove("dash"); }, 1700); } }
+  }catch(e){}
+}
+// 조교: 벌점 실행취소 막대(5초)
+function gUndo(text, fn){
+  let el = document.querySelector("#gundo"); if(el) el.remove();
+  el = document.createElement("div"); el.id = "gundo"; el.className = "gundo"; el.innerHTML = `<span>${esc(text)}</span><button>실행취소</button>`;
+  document.body.appendChild(el); const t = setTimeout(() => el.remove(), 5000);
+  el.querySelector("button").onclick = async () => { clearTimeout(t); el.remove(); await fn(); };
 }
 
 // ---------------- 조교·원장: 점수판 ----------------
@@ -2251,9 +2286,10 @@ function gStudentBlock(s, b, opts){
       ${s.hp <= 0 ? `<span class="gwarn red">면담 대상</span>` : s.hp / max <= 0.3 ? `<span class="gwarn">주의</span>` : ""}
       ${s.studying ? `<span class="gpill" style="background:#e3f3e8;color:var(--ok)">📚 공부 중</span>` : ""}<span class="gpill">⏱ ${gHM(s.study)}</span>
       ${net ? `<span class="muted" style="font-weight:800">오늘 ${gSign(net)}</span>` : ""}</div>
-    <div>${(s.entries || []).map(e => `<span class="gchip${e.pts < 0 ? " minus" : ""}">${esc(e.label)} ${gPts(e)}${e.auto ? "" : `<button data-void="${e.id}" title="취소" aria-label="${esc(e.label)} 취소">✕</button>`}</span>`).join("")}
+    <div>${(s.entries || []).map(e => `<span class="gchip${e.pts < 0 || e.key === "bust" ? " minus" : ""}">${esc(e.label)} ${gPts(e)}${e.auto || e.key === "bust" ? "" : `<button data-void="${e.id}" title="취소" aria-label="${esc(e.label)} 취소">✕</button>`}</span>`).join("")}
       ${(s.coupons || []).map(c => `<span class="gchip tix">🎟 ${esc(c.name)}<button data-use="${c.id}">사용 처리</button></span>`).join("")}</div>
-    <div class="tgbtns">${pens.map(r => `<button class="gb pen" data-give="${esc(r.key)}">${esc(r.emoji)} ${esc(r.label)} ${r.pts}</button>`).join("")}${rews.filter(r => !(opts && opts.noVariant) || r.key !== "variant_ok").map(r => `<button class="gb rew" data-give="${esc(r.key)}">${esc(r.emoji)} ${esc(r.label)} +${r.pts}</button>`).join("")}${s.studying ? `<button class="gb neu" data-sstop="1">⏱ 타이머 정지</button>` : ""}<button class="gb neu" data-sfix="1">⏱ 공부 시간 수정</button></div>
+    <div class="tgbtns"><span class="tgl">벌점</span>${pens.map(r => `<button class="gb pen" data-give="${esc(r.key)}">${esc(r.emoji)} ${esc(r.label)} ${r.pts}</button>`).join("")}${s.studying || s.study > 0 ? `<button class="gb pen" data-bust="1">🚨 타이머 적발</button>` : ""}</div>
+    <div class="tgbtns"><span class="tgl">가점</span>${rews.filter(r => !(opts && opts.noVariant) || r.key !== "variant_ok").map(r => `<button class="gb rew" data-give="${esc(r.key)}">${esc(r.emoji)} ${esc(r.label)} +${r.pts}</button>`).join("")}${s.studying ? `<button class="gb neu" data-sstop="1">⏱ 타이머 정지</button>` : ""}<button class="gb neu" data-sfix="1">⏱ 공부 시간 수정</button></div>
   </div>`;
 }
 function gBindBlocks(root, redraw){
@@ -2262,7 +2298,14 @@ function gBindBlocks(root, redraw){
     let note = ""; if(r.key === "bonus"){ note = prompt(`${s.name} 특별 가점 사유`); if(note === null) return; }
     btn.disabled = true;
     try{ const res = await rpc("tb_g_give", { p_pass: T.pass, p_code: code, p_key: r.key, p_day: T.day, p_note: note || "", p_ref: null });
-      if(!res) throw 0; toast(`${s.name} · ${res.label} ${gSign(res.pts)}`); await gBoardLoad(); redraw(); }catch(e){ toast("기록 실패"); btn.disabled = false; }
+      if(!res) throw 0; await gBoardLoad(); redraw();
+      if(res.pts < 0) gUndo(`${s.name} · ${res.label} ${gSign(res.pts)} 기록`, async () => { try{ const ok = await rpc("tb_g_void", { p_pass: T.pass, p_id: res.id }); if(!ok) throw 0; toast("취소했습니다"); await gBoardLoad(); redraw(); }catch(e){ toast("취소 실패"); } });
+      else toast(`${s.name} · ${res.label} ${gSign(res.pts)}`); }catch(e){ toast("기록 실패"); btn.disabled = false; }
+  });
+  root.querySelectorAll("[data-bust]").forEach(btn => btn.onclick = async () => {
+    const code = btn.closest("[data-gs]").dataset.gs, s = G.board.students.find(x => x.code === code);
+    if(!confirm(`${s.name} 타이머 적발\n오늘 가장 최근 타이머 시간을 그만큼 마이너스로 바꿉니다. 진행할까요?`)) return;
+    try{ const m = await rpc("tb_g_study_bust", { p_pass: T.pass, p_code: code }); if(m == null) return toast("오늘 적발할 타이머 기록이 없습니다"); toast(`${s.name} 타이머 적발 — 공부 시간 −${m}분`); await gBoardLoad(); redraw(); }catch(e){ toast("실패 — DB(v7) 적용이 필요합니다"); }
   });
   root.querySelectorAll("[data-sstop]").forEach(btn => btn.onclick = async () => {
     const code = btn.closest("[data-gs]").dataset.gs;
@@ -2444,12 +2487,27 @@ renderTAReport = async function(){
 };
 const _renderReportBase = renderReport;
 renderReport = async function(arg){ await _renderReportBase(arg); await gReportInject(arg); };
+const _renderLoginBase = renderLogin;
+function gLoginDress(){
+  const w = document.querySelector("#app .wrap"); if(w && document.querySelector("#code") && !document.querySelector(".glogin")) w.insertAdjacentHTML("afterbegin", `<div class="glogin"><img src="${IMG("kn_idle")}" alt="믿음이"><div><b>공부하면 성을 지킨다</b><span>플래너 · 단어 · 오답 질문 · 공성전</span></div></div>`);
+}
+renderLogin = function(){ _renderLoginBase(); gLoginDress(); };
+gLoginDress();
+function gDress(){
+  try{
+    if(typeof S === "undefined" || S.mode !== "home") return;
+    document.querySelectorAll("#app .wrap .card h2").forEach(h => { if(/배정된 세트가 없습니다/.test(h.textContent) && !h.parentNode.querySelector(".gempty")) h.insertAdjacentHTML("beforebegin", `<img class="gempty" src="${IMG("kn_study")}" alt="">`); });
+    const w = document.querySelector("#app .wrap");
+    if(W.tab === "plan" && w && !document.querySelector(".gph")){ const r = G.me && (G.me.rules || []).find(x => x.key === "plan_clear"); w.insertAdjacentHTML("afterbegin", `<p class="gph">${gCoin()}계획 클리어 시 <b>공격 ${r ? "+" + r.pts : "가점"}</b> · <b>하트 1칸 회복</b></p>`); }
+  }catch(e){}
+}
 const _renderWinter = render;
 render = function(){
   const h = location.hash;
   if(!h.startsWith("#r/") && h !== "#ta" && h !== "#admin" && S.mode === "home" && W.tab === "game") return renderGame();
   clearInterval(G.tick);
-  return _renderWinter();
+  const r = _renderWinter(); Promise.resolve(r).then(gDress); setTimeout(gDress, 700);
+  return r;
 };
 if(location.hash.startsWith("#r/") || location.hash === "#ta") render();
 else if(typeof S !== "undefined" && S.mode === "home" && W.tab === "game") render();
@@ -2486,7 +2544,7 @@ const AI_ERR = { nokey: "AI 연결 설정이 아직 안 됐습니다. 원장님�
 function aiHtml(a, staff){
   if(!a) return "";
   if(a.pending) return `<div class="aibox"><div class="hd"><span class="aispin"></span>믿음이가 문제를 읽고 있어… (1분쯤 걸려)</div></div>`;
-  if(a.error) return `<div class="aibox"><div class="hd">🐾 ${esc(AI_ERR[a.error] || AI_ERR.openai)}</div>${a.detail ? `<p class="muted" style="font-size:11px;margin-top:6px;word-break:break-all">원인: ${esc(a.detail)}</p>` : ""}</div>`;
+  if(a.error) return `<div class="aibox"><div class="hd">🐾 ${esc(AI_ERR[a.error] || AI_ERR.openai)}</div>${a.detail && staff ? `<p class="muted" style="font-size:11px;margin-top:6px;word-break:break-all">원인: ${esc(a.detail)}</p>` : ""}</div>`;
   if(a.unreadable) return `<div class="aibox"><div class="hd"><img src="${IMG(EMO.hmm[0])}" alt="">사진을 제대로 못 읽었어</div><p>${esc(a.note || "문제가 잘 보이게 다시 찍어서 올려 줘.")}</p></div>`;
   return `<div class="aibox"><div class="hd"><img src="${IMG(EMO.joy[0])}" alt="">믿음이랑 끝내는 ${esc(a.title || "이 문제")}</div>
     <p class="muted" style="font-size:11px">AI가 만든 해설입니다. 이상하면 조교 선생님께 물어보세요.</p>
@@ -2688,6 +2746,41 @@ gStudentInject = async function(){
   .aibtn img{border:2.5px solid var(--fur)}
   .aibtn b{font-family:var(--pf);font-weight:400;font-size:22px;color:var(--fur)}
   .aibtn small{color:#eef0f5;font-size:13px}
+
+  /* 리뷰 반영 */
+  .top .chip{color:#fff}
+  .stat span,.gmvp .c{font-size:12.5px}
+  .gcs .gcap span:last-child{font-size:12.5px}
+  .gwarnline{font-size:13px;color:var(--bad);background:#fdece9;border-radius:8px;padding:7px 10px;margin-top:8px}
+  .gfold>summary{cursor:pointer;list-style:none;font-family:var(--pf);font-size:16px;color:var(--navy);padding:4px 0}
+  .gfold>summary::-webkit-details-marker{display:none}
+  .gfold>summary::after{content:"▾";float:right;color:var(--sub)}
+  .gfold[open]>summary::after{content:"▴"}
+  details.card.gfold>summary h2{display:inline;margin:0}
+  details.card.gfold[open]>summary{margin-bottom:10px}
+  .grkme{font-size:14px;margin-top:8px;background:var(--cream);border:1.5px dashed var(--ol);border-radius:8px;padding:7px 10px;color:var(--ink)}
+  .grkme b{color:var(--navy)}
+  .gcs{position:relative}
+  .gcs.hit .gcimg img{animation:gshake .45s ease-in-out 3}
+  .gdmg{position:absolute;left:50%;top:26%;transform:translateX(-50%);font-weight:900;font-size:30px;color:#fff;text-shadow:0 2px 0 var(--ol),2px 0 0 var(--ol),-2px 0 0 var(--ol),0 -2px 0 var(--ol);pointer-events:none;animation:gfloat 1.8s ease-out forwards;z-index:3}
+  .gdmg.own{color:#ff8d84}
+  .gbanner img.dash{animation:gdash .5s ease-out 3}
+  @keyframes gshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px) rotate(-1.5deg)}75%{transform:translateX(5px) rotate(1.5deg)}}
+  @keyframes gfloat{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}15%{opacity:1;transform:translate(-50%,0) scale(1.15)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-34px) scale(1)}}
+  @keyframes gdash{50%{transform:translateX(12px)}}
+  @media(prefers-reduced-motion:reduce){.gcs.hit .gcimg img,.gbanner img.dash{animation:none}.gdmg{animation-duration:3s}}
+  .tgbtns{gap:8px;margin-top:10px;align-items:center}
+  .tgl{font-family:var(--pf);font-size:13px;color:var(--sub);width:30px}
+  .gb{min-height:44px;padding:9px 12px}
+  .gundo{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:60;display:flex;gap:12px;align-items:center;background:var(--navy);color:#fff;border:2px solid var(--fur);border-radius:10px;padding:10px 12px 10px 16px;font-size:15px;max-width:92vw}
+  .gundo button{white-space:nowrap;font-family:var(--pf);font-size:16px;background:var(--fur);color:var(--navy);border-radius:8px;padding:8px 14px;min-height:40px}
+  .glogin{display:flex;gap:12px;align-items:center;background:var(--navy);color:#fff;border:var(--o);border-radius:var(--r);box-shadow:0 4px 0 var(--fur);padding:6px 14px;margin-bottom:16px}
+  .glogin img{width:96px;height:96px;object-fit:contain;flex:0 0 96px}
+  .glogin b{display:block;font-family:var(--pf);font-weight:400;font-size:23px;color:var(--fur)}
+  .glogin span{font-size:13px;color:#eef0f5}
+  .gempty{display:block;width:120px;height:120px;object-fit:contain;margin:0 auto 6px}
+  .gph{font-size:14px;background:var(--cream);border:1.5px dashed var(--ol);border-radius:8px;padding:7px 10px;margin-bottom:12px;color:var(--ink)}
+  .gph b{color:var(--navy)}
   @media print{html,body{background:#fff}.card,.gcs{box-shadow:none}}
   `;
   document.head.appendChild(st);
