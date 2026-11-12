@@ -2252,7 +2252,9 @@ async function renderGame(){
   clearInterval(G.poll);
   G.poll = setInterval(async () => {
     if(W.tab !== "game" || S.mode !== "home" || document.hidden || !document.querySelector(".gbanner") || document.querySelector("#gdrawok, .gbox3")) return;
-    try{ const sig = x => JSON.stringify(((x.war || {}).clans || []).map(c => c.hp)), old = sig(G.me), nm = await gLoad(true); if(nm && sig(nm) !== old && W.tab === "game") renderGame(); }catch(e){}
+    const sig = x => JSON.stringify(((x.war || {}).clans || []).map(c => c.hp)), old = sig(G.me);
+    try{ const hp = await rpc("tb_g_pulse", { p_code: S.code }); if(hp && JSON.stringify(hp) !== old && W.tab === "game"){ await gLoad(true); renderGame(); } }
+    catch(e){ try{ const nm = await gLoad(true); if(nm && sig(nm) !== old && W.tab === "game") renderGame(); }catch(e2){} }
   }, 30000);
 }
 
@@ -2285,51 +2287,59 @@ async function gBoardLoad(){ G.board = await rpc("tb_g_board", { p_pass: T.pass,
 function gStudentBlock(s, b, opts){
   const max = b.cfg.hp_max, pens = b.rules.filter(r => r.active && r.kind === "penalty" && !r.auto), rews = b.rules.filter(r => r.active && r.kind === "reward" && !r.auto);
   const clan = b.clans.find(c => c.id === s.clan), net = (s.entries || []).reduce((a, e) => a + e.pts, 0);
-  return `<div class="gstu" data-gs="${esc(s.code)}">
-    <div class="hd">${gAvatar(s, true)}<span class="nm">${esc(s.name)}</span>${clan ? `<span class="muted">${esc(clan.emoji)} ${esc(clan.name)}</span>` : `<span class="muted">클랜 없음</span>`}
-      <span class="glv">Lv.${s.level}</span><span class="gpill fire">🔥 ${s.streak}</span>
+  const fold = opts && opts.fold, open = !fold || opts.open;
+  return `<div class="gstu${fold ? " fold" : ""}${open ? " open" : ""}" data-gs="${esc(s.code)}">
+    <div class="hd"${fold ? ` data-tog="1" role="button" tabindex="0"` : ""}>${gAvatar(s, true)}<span class="nm">${esc(s.name)}</span>${clan ? `<span class="muted">${esc(clan.emoji)}<span class="xf"> ${esc(clan.name)}</span></span>` : `<span class="muted xf">클랜 없음</span>`}
+      <span class="glv xf">Lv.${s.level}</span><span class="gpill fire xf">🔥 ${s.streak}</span>
       <span class="gpill" style="${s.hp / max <= 0.3 ? "background:#fde8e4;color:var(--bad)" : ""}">❤️ ${s.hp}/${max}</span>
       ${s.hp <= 0 ? `<span class="gwarn red">면담 대상</span>` : s.hp / max <= 0.3 ? `<span class="gwarn">주의</span>` : ""}
       ${s.studying ? `<span class="gpill" style="background:#e3f3e8;color:var(--ok)">📚 공부 중</span>` : ""}<span class="gpill">⏱ ${gHM(s.study)}</span>
-      ${net ? `<span class="muted" style="font-weight:800">오늘 ${gSign(net)}</span>` : ""}</div>
-    <div>${(s.entries || []).map(e => `<span class="gchip${e.pts < 0 || e.key === "bust" ? " minus" : ""}">${esc(e.label)} ${gPts(e)}${e.auto || e.key === "bust" ? "" : `<button data-void="${e.id}" title="취소" aria-label="${esc(e.label)} 취소">✕</button>`}</span>`).join("")}
+      ${net ? `<span class="muted" style="font-weight:800">오늘 ${gSign(net)}</span>` : ""}${fold ? `<span class="car">${open ? "▴" : "▾"}</span>` : ""}</div>
+    ${open ? `<div class="gbody"><div>${(s.entries || []).map(e => `<span class="gchip${e.pts < 0 || e.key === "bust" ? " minus" : ""}">${esc(e.label)} ${gPts(e)}${e.auto || e.key === "bust" ? "" : `<button data-void="${e.id}" title="취소" aria-label="${esc(e.label)} 취소">✕</button>`}</span>`).join("")}
       ${(s.coupons || []).map(c => `<span class="gchip tix">🎟 ${esc(c.name)}<button data-use="${c.id}">사용 처리</button></span>`).join("")}</div>
     <div class="tgbtns"><span class="tgl">벌점</span>${pens.map(r => `<button class="gb pen" data-give="${esc(r.key)}">${esc(r.emoji)} ${esc(r.label)} ${r.pts}</button>`).join("")}${s.studying || s.study > 0 ? `<button class="gb pen" data-bust="1">🚨 타이머 적발</button>` : ""}</div>
-    <div class="tgbtns"><span class="tgl">가점</span>${rews.filter(r => !(opts && opts.noVariant) || r.key !== "variant_ok").map(r => `<button class="gb rew" data-give="${esc(r.key)}">${esc(r.emoji)} ${esc(r.label)} +${r.pts}</button>`).join("")}${s.studying ? `<button class="gb neu" data-sstop="1">⏱ 타이머 정지</button>` : ""}<button class="gb neu" data-sfix="1">⏱ 공부 시간 수정</button></div>
+    <div class="tgbtns"><span class="tgl">가점</span>${rews.filter(r => !(opts && opts.noVariant) || r.key !== "variant_ok").map(r => `<button class="gb rew" data-give="${esc(r.key)}">${esc(r.emoji)} ${esc(r.label)} +${r.pts}</button>`).join("")}${s.studying ? `<button class="gb neu" data-sstop="1">⏱ 타이머 정지</button>` : ""}<button class="gb neu" data-sfix="1">⏱ 공부 시간 수정</button></div></div>` : ""}
   </div>`;
 }
+// 버튼을 누른 학생 한 명만 다시 받아 옴(v9). 함수가 아직 없으면 전체를 다시 받음
+async function gOne(code){
+  try{ const one = await rpc("tb_g_board_one", { p_pass: T.pass, p_code: code, p_day: T.day }); if(!one) throw 0;
+    const i = G.board.students.findIndex(x => x.code === code); if(i >= 0) G.board.students[i] = one; else throw 0; }
+  catch(e){ await gBoardLoad(); }
+}
+async function gGive(code, key, redraw, btn){
+  const s = G.board.students.find(x => x.code === code), r = G.board.rules.find(x => x.key === key); if(!s || !r) return;
+  let note = ""; if(r.key === "bonus"){ note = prompt(`${s.name} 특별 가점 사유`); if(note === null) return; }
+  if(btn) btn.disabled = true;
+  try{ const res = await rpc("tb_g_give", { p_pass: T.pass, p_code: code, p_key: r.key, p_day: T.day, p_note: note || "", p_ref: null });
+    if(!res) throw 0; await gOne(code); redraw();
+    if(res.pts < 0) gUndo(`${s.name} · ${res.label} ${gSign(res.pts)} 기록`, async () => { try{ const ok = await rpc("tb_g_void", { p_pass: T.pass, p_id: res.id }); if(!ok) throw 0; toast("취소했습니다"); await gOne(code); redraw(); }catch(e){ toast("취소 실패"); } });
+    else toast(`${s.name} · ${res.label} ${gSign(res.pts)}`); }catch(e){ toast("기록 실패"); if(btn) btn.disabled = false; }
+}
 function gBindBlocks(root, redraw){
-  root.querySelectorAll("[data-give]").forEach(btn => btn.onclick = async () => {
-    const code = btn.closest("[data-gs]").dataset.gs, s = G.board.students.find(x => x.code === code), r = G.board.rules.find(x => x.key === btn.dataset.give);
-    let note = ""; if(r.key === "bonus"){ note = prompt(`${s.name} 특별 가점 사유`); if(note === null) return; }
-    btn.disabled = true;
-    try{ const res = await rpc("tb_g_give", { p_pass: T.pass, p_code: code, p_key: r.key, p_day: T.day, p_note: note || "", p_ref: null });
-      if(!res) throw 0; await gBoardLoad(); redraw();
-      if(res.pts < 0) gUndo(`${s.name} · ${res.label} ${gSign(res.pts)} 기록`, async () => { try{ const ok = await rpc("tb_g_void", { p_pass: T.pass, p_id: res.id }); if(!ok) throw 0; toast("취소했습니다"); await gBoardLoad(); redraw(); }catch(e){ toast("취소 실패"); } });
-      else toast(`${s.name} · ${res.label} ${gSign(res.pts)}`); }catch(e){ toast("기록 실패"); btn.disabled = false; }
-  });
+  root.querySelectorAll("[data-give]").forEach(btn => btn.onclick = () => gGive(btn.closest("[data-gs]").dataset.gs, btn.dataset.give, redraw, btn));
   root.querySelectorAll("[data-bust]").forEach(btn => btn.onclick = async () => {
     const code = btn.closest("[data-gs]").dataset.gs, s = G.board.students.find(x => x.code === code);
     if(!confirm(`${s.name} 타이머 적발\n오늘 가장 최근 타이머 시간을 그만큼 마이너스로 바꿉니다. 진행할까요?`)) return;
-    try{ const m = await rpc("tb_g_study_bust", { p_pass: T.pass, p_code: code }); if(m == null) return toast("오늘 적발할 타이머 기록이 없습니다"); toast(`${s.name} 타이머 적발 — 공부 시간 −${m}분`); await gBoardLoad(); redraw(); }catch(e){ toast("실패 — DB(v7) 적용이 필요합니다"); }
+    try{ const m = await rpc("tb_g_study_bust", { p_pass: T.pass, p_code: code }); if(m == null) return toast("오늘 적발할 타이머 기록이 없습니다"); toast(`${s.name} 타이머 적발 — 공부 시간 −${m}분`); await gOne(code); redraw(); }catch(e){ toast("실패 — DB(v7) 적용이 필요합니다"); }
   });
   root.querySelectorAll("[data-sstop]").forEach(btn => btn.onclick = async () => {
     const code = btn.closest("[data-gs]").dataset.gs;
-    try{ const ok = await rpc("tb_g_study_stop", { p_pass: T.pass, p_code: code }); if(!ok) throw 0; toast("타이머를 멈췄습니다"); await gBoardLoad(); redraw(); }catch(e){ toast("실패"); }
+    try{ const ok = await rpc("tb_g_study_stop", { p_pass: T.pass, p_code: code }); if(!ok) throw 0; toast("타이머를 멈췄습니다"); await gOne(code); redraw(); }catch(e){ toast("실패"); }
   });
   root.querySelectorAll("[data-sfix]").forEach(btn => btn.onclick = async () => {
     const code = btn.closest("[data-gs]").dataset.gs, s = G.board.students.find(x => x.code === code);
     const v = prompt(`${s.name} · ${fmtDay(T.day)} 공부 시간(분)으로 고치기\n지금 ${s.study}분. 타이머 기록은 이 값으로 바뀝니다.`, s.study); if(v === null) return;
     const n = parseInt(v, 10); if(!(n >= 0)) return toast("숫자(분)를 넣어 주세요");
-    try{ const ok = await rpc("tb_g_study_fix", { p_pass: T.pass, p_code: code, p_day: T.day, p_minutes: n }); if(!ok) throw 0; toast(`${s.name} 공부 시간 ${gHM(n)}`); await gBoardLoad(); redraw(); }catch(e){ toast("수정 실패 (0~960분, 최근 7일)"); }
+    try{ const ok = await rpc("tb_g_study_fix", { p_pass: T.pass, p_code: code, p_day: T.day, p_minutes: n }); if(!ok) throw 0; toast(`${s.name} 공부 시간 ${gHM(n)}`); await gOne(code); redraw(); }catch(e){ toast("수정 실패 (0~960분, 최근 7일)"); }
   });
   root.querySelectorAll("[data-void]").forEach(btn => btn.onclick = async () => {
-    if(!confirm("이 기록을 취소할까요?")) return;
-    try{ const ok = await rpc("tb_g_void", { p_pass: T.pass, p_id: +btn.dataset.void }); if(!ok) throw 0; toast("취소했습니다"); await gBoardLoad(); redraw(); }catch(e){ toast("취소 실패 — 조교는 오늘 넣은 것만 취소할 수 있습니다"); }
+    if(!confirm("이 기록을 취소할까요?")) return; const code = btn.closest("[data-gs]").dataset.gs;
+    try{ const ok = await rpc("tb_g_void", { p_pass: T.pass, p_id: +btn.dataset.void }); if(!ok) throw 0; toast("취소했습니다"); await gOne(code); redraw(); }catch(e){ toast("취소 실패 — 조교는 오늘 넣은 것만 취소할 수 있습니다"); }
   });
   root.querySelectorAll("[data-use]").forEach(btn => btn.onclick = async () => {
-    if(!confirm("쿠폰을 사용 처리할까요? 되돌릴 수 없습니다.")) return;
-    try{ const ok = await rpc("tb_g_coupon_use", { p_pass: T.pass, p_id: +btn.dataset.use }); if(!ok) throw 0; toast("쿠폰 사용 처리"); await gBoardLoad(); redraw(); }catch(e){ toast("실패"); }
+    if(!confirm("쿠폰을 사용 처리할까요? 되돌릴 수 없습니다.")) return; const code = btn.closest("[data-gs]").dataset.gs;
+    try{ const ok = await rpc("tb_g_coupon_use", { p_pass: T.pass, p_id: +btn.dataset.use }); if(!ok) throw 0; toast("쿠폰 사용 처리"); await gOne(code); redraw(); }catch(e){ toast("실패"); }
   });
 }
 async function gBoardInject(){
@@ -2338,15 +2348,40 @@ async function gBoardInject(){
   if(!G.board || G.board.day !== T.day){ host.innerHTML = `<div class="card"><p class="muted">점수판 불러오는 중…</p></div>`;
     try{ await gBoardLoad(); }catch(e){ host.innerHTML = gNotReady(e) ? `<div class="card"><h2>⚔️ 점수판</h2><p class="muted">게임 기능(v4)이 아직 DB에 적용되지 않았습니다.</p></div>` : winterNotReady(e); return; } }
   const b = G.board; if(!b){ host.innerHTML = ""; return; }
+  const st = G.bs || (G.bs = { q: "", f: "all", open: {}, round: "" });
+  const match = (s, bb) => (!st.q || s.name.includes(st.q) || s.code.includes(st.q.toUpperCase()))
+    && (st.f === "all" || (st.f === "on" && s.studying) || (st.f === "low" && s.hp / bb.cfg.hp_max <= 0.3) || (st.f.startsWith("c:") && String(s.clan) === st.f.slice(2)));
+  const drawList = () => {
+    const bb = G.board, list = bb.students.filter(s => match(s, bb)), box = host.querySelector(".glist"); if(!box) return;
+    box.innerHTML = list.map(s => gStudentBlock(s, bb, { fold: true, open: !!st.open[s.code] })).join("") || `<p class="muted">조건에 맞는 학생이 없습니다</p>`;
+    const cnt = host.querySelector("#gcnt"); if(cnt) cnt.textContent = `${list.length}명`;
+    gBindBlocks(box, drawList);
+    box.querySelectorAll("[data-tog]").forEach(h => h.onclick = () => {
+      const code = h.closest("[data-gs]").dataset.gs;
+      if(st.round) return gGive(code, st.round, drawList, null);
+      st.open[code] = !st.open[code]; drawList();
+    });
+  };
   const draw = () => {
     const bb = G.board, alert = bb.students.filter(s => s.hp / bb.cfg.hp_max <= 0.3), lw = gWinner(bb.last_war);
-    host.innerHTML = `<div class="card"><h2>⚔️ 점수판 · ${fmtDay(T.day)} <span class="muted" style="font-weight:400">· 버튼을 한 번 누르면 바로 기록됩니다</span></h2>
-      <div class="gsay">${gArt("director_09", "sm")}<div class="bb"><b>본 대로 바로 누른다.</b><br>벌점은 그 학생 체력과 클랜 성을 같이 깎고, 가점은 상대 성을 친다. 잘못 눌렀으면 ✕로 취소.</div></div>
-      ${alert.length ? `<div class="msg" style="border-left-color:var(--bad)"><b style="color:var(--bad)">체력 경보</b>${alert.map(s => `${esc(s.name)} (${s.hp}/${bb.cfg.hp_max}${s.hp <= 0 ? ", 면담 대상" : ""})`).join(" · ")}</div>` : ""}
-      ${bb.students.map(s => gStudentBlock(s, bb)).join("") || `<p class="muted">학생이 없습니다</p>`}</div>
+    const pens = bb.rules.filter(r => r.active && !r.auto && r.kind === "penalty"), rews = bb.rules.filter(r => r.active && !r.auto && r.kind === "reward" && r.key !== "bonus");
+    const rr = bb.rules.find(r => r.key === st.round); if(st.round && !rr) st.round = "";
+    const fb = (k, label) => `<button class="gfc${st.f === k ? " on" : ""}" data-f="${k}">${label}</button>`;
+    host.innerHTML = `<div class="card"><h2>⚔️ 점수판 · ${fmtDay(T.day)} <span class="muted" style="font-weight:400">· 이름을 누르면 버튼이 펼쳐집니다</span></h2>
+      ${alert.length ? `<div class="msg" style="border-left-color:var(--bad)"><b style="color:var(--bad)">체력 경보 ${alert.length}명</b>${alert.slice(0, 12).map(s => `${esc(s.name)}${s.hp <= 0 ? "(면담)" : ""}`).join(" · ")}${alert.length > 12 ? " …" : ""}</div>` : ""}
+      <div class="gtool">
+        <input class="field" id="gq" placeholder="🔍 이름 검색" value="${esc(st.q)}" autocomplete="off">
+        <div class="gfil">${fb("all", `전체 ${bb.students.length}`)}${fb("on", `📚 타이머 켬 ${bb.students.filter(s => s.studying).length}`)}${fb("low", `⚠️ 하트 3칸 이하 ${alert.length}`)}${bb.clans.filter(c => c.active).map(c => fb("c:" + c.id, `${esc(c.emoji)} ${esc(c.name)}`)).join("")}<span class="muted" id="gcnt" style="margin-left:auto"></span></div>
+        <div class="ground${st.round ? " on" : ""}"><label for="ground">순회 모드</label><select id="ground" class="field"><option value="">끄기 (이름을 누르면 펼치기)</option><optgroup label="벌점">${pens.map(r => `<option value="${esc(r.key)}" ${st.round === r.key ? "selected" : ""}>${esc(r.emoji)} ${esc(r.label)} ${r.pts}</option>`).join("")}</optgroup><optgroup label="가점">${rews.map(r => `<option value="${esc(r.key)}" ${st.round === r.key ? "selected" : ""}>${esc(r.emoji)} ${esc(r.label)} +${r.pts}</option>`).join("")}</optgroup></select>
+          ${st.round && rr ? `<p><b>${esc(rr.emoji)} ${esc(rr.label)} ${gSign(rr.pts)}</b> — 학생 이름을 누르면 바로 기록됩니다. 다 돌았으면 꼭 끄세요.</p>` : ""}</div>
+      </div>
+      <div class="glist${st.round ? " rnd" : ""}"></div></div>
       <div class="card"><h2>이번 주 공성전</h2>${lw ? `<p class="muted" style="margin-bottom:6px">지난주 승리: <b style="color:var(--navy)">${esc(lw.emoji)} ${esc(lw.name)}</b></p>` : ""}${gWarHtml(bb.war, null)}
       ${bb.role === "admin" ? `<button class="btn sm gold" id="gset" style="margin-top:8px">게임 설정 (점수·기준·클랜·쿠폰)</button>` : ""}</div>`;
-    gBindBlocks(host, draw);
+    $("#gq").oninput = e => { st.q = e.target.value.trim(); drawList(); };
+    host.querySelectorAll("[data-f]").forEach(x => x.onclick = () => { st.f = x.dataset.f; draw(); });
+    $("#ground").onchange = e => { st.round = e.target.value; draw(); };
+    drawList();
     if($("#gset")) $("#gset").onclick = () => { T.view = "game"; renderTA(); };
   };
   draw();
@@ -2370,7 +2405,7 @@ async function gStudentInject(){
     card.querySelector("[data-var]").onclick = async ev => {
       const btn = ev.currentTarget; btn.disabled = true;
       try{ const res = await rpc("tb_g_give", { p_pass: T.pass, p_code: T.sel, p_key: "variant_ok", p_day: T.day, p_note: (card.querySelector(".t") ? card.querySelector(".t").childNodes[0].textContent.trim() : ""), p_ref: +btn.dataset.var });
-        if(!res){ toast("이미 이 문제로 가점을 줬습니다"); return; } toast(`${res.label} ${gSign(res.pts)}`); btn.textContent = "✔ 가점 완료"; await gBoardLoad(); draw(); }catch(e){ toast("기록 실패"); btn.disabled = false; }
+        if(!res){ toast("이미 이 문제로 가점을 줬습니다"); return; } toast(`${res.label} ${gSign(res.pts)}`); btn.textContent = "✔ 가점 완료"; await gOne(T.sel); draw(); }catch(e){ toast("기록 실패"); btn.disabled = false; }
     };
   });
 }
@@ -2850,6 +2885,31 @@ gStudentInject = async function(){
     .gpick button{font-size:19px;padding:15px 8px}
   }
   @media(min-width:1100px){.gwrap{max-width:1240px}.wtabs{max-width:1240px}.gcimg img{max-width:250px}.gclock{font-size:54px!important}.tbart.sq{width:120px;height:120px;flex-basis:120px}}
+
+  /* 조교 점수판: 수십 명 규모 */
+  .gtool{display:grid;gap:8px;margin:4px 0 10px}
+  .gtool .field{margin:0}
+  .gfil{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .gfc{font-family:var(--pf);font-size:14.5px;border:2px solid var(--ol);border-radius:8px;background:#fff;color:var(--navy);padding:8px 11px;min-height:40px}
+  .gfc.on{background:var(--navy);color:#fff}
+  .ground{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;border:2px dashed var(--ol);border-radius:9px;padding:8px 10px;background:#fff}
+  .ground label{font-family:var(--pf);font-size:15px;color:var(--navy)}
+  .ground p{grid-column:1 / -1;font-size:14px;color:var(--ink)}
+  .ground.on{background:#fdece9;border-style:solid;border-color:var(--bad)}
+  .gstu{break-inside:avoid}
+  .gstu.fold{padding:0;border-bottom:1.5px solid var(--line)}
+  .gstu.fold .hd{padding:10px 6px;cursor:pointer;gap:7px;min-height:52px}
+  .gstu.fold .hd:active{background:var(--cream)}
+  .gstu.fold.open{background:var(--cream);border:var(--o);border-radius:9px;margin:6px 0}
+  .gstu.fold .gbody{padding:0 8px 10px}
+  .gstu .car{margin-left:auto;color:var(--sub);font-size:13px}
+  .gstu.fold:not(.open) .xf{display:none}
+  .gstu.fold .hd .gpill{padding:1px 7px;font-size:13px}
+  .gstu.fold .hd .nm{min-width:3.2em}
+  .glist.rnd .gstu.fold .hd{background:#fff6f4}
+  .glist.rnd .gstu .car{visibility:hidden}
+  @media(min-width:900px){#gboard .glist{columns:2;column-gap:24px}}
+  @media(min-width:1500px){.wrap.wide{max-width:1500px}#gboard .glist{columns:3}}
   @media print{html,body{background:#fff}.card,.gcs{box-shadow:none}}
   `;
   document.head.appendChild(st);
