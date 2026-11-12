@@ -1840,6 +1840,8 @@ const gNotReady = e => /tb_g_|PGRST202|function/i.test(String(e && e.message || 
   @keyframes gshieldp{0%,100%{opacity:.55}50%{opacity:1}}
   @media(prefers-reduced-motion:reduce){.gbox3,.gprize,.gshield{animation:none}}
   .tbart{width:72px;height:96px;object-fit:cover;border-radius:12px;flex:0 0 72px;border:1px solid var(--line)}
+  .tbart.sq{width:84px;height:84px;flex-basis:84px;object-fit:contain;background:var(--soft);padding:3px}
+  .tbart.pop{animation:gpopin .45s ease-out}
   .tbart.sm{width:54px;height:72px;flex-basis:54px}
   .tbart.lg{width:104px;height:140px;flex-basis:104px}
   .gbanner{display:flex;gap:12px;align-items:center;background:var(--navy);color:#fff;border-radius:14px;padding:12px;margin-bottom:12px;border-bottom:3px solid var(--gold)}
@@ -1944,6 +1946,9 @@ function gWarHtml(war, myClan){
 const gHM = m => `${Math.floor((m || 0) / 60)}시간 ${(m || 0) % 60}분`;
 const gPts = e => e.hp ? `❤️+${e.hp}` : e.pts ? gSign(e.pts) : "";
 const gClock = sec => { sec = Math.max(0, Math.floor(sec)); const p = n => String(n).padStart(2, "0"); return `${p(Math.floor(sec / 3600))}:${p(Math.floor(sec / 60) % 60)}:${p(sec % 60)}`; };
+// 공부 시간 15분마다 바뀌는 믿음이 (공식 이모티콘·포즈만 사용)
+const G_STUDY_ART = ["mideum_03", "emo_16", "emo_04", "emo_17", "emo_12", "mideum_09", "emo_19", "emo_22", "emo_05", "emo_27", "emo_21", "emo_25", "emo_01", "emo_11", "emo_32", "emo_08", "emo_31", "emo_09", "emo_24", "emo_13", "emo_26", "emo_20", "emo_23", "emo_14", "emo_28", "mideum_05", "mideum_07"].filter(k => ASSETS[k]);
+const gStudyArtIdx = sec => Math.floor(Math.max(0, sec) / 900) % G_STUDY_ART.length;
 function gStudySec(st){
   let sec = (st.closed || 0) * 60;
   if(st.running){ const el = (Date.now() + G.skew - new Date(st.started).getTime()) / 1000; sec += Math.min(Math.max(0, el), st.cap * 60); }
@@ -1956,8 +1961,8 @@ function gStudyCard(m){
   const next = ms.find(x => x > st.today);
   return `<div class="card gstudy${st.running ? " on" : ""}">
     <h2>⏱ 공부 타이머 ${st.running ? `<span class="badge cleared">공부 중</span>` : ""}</h2>
-    <div style="display:flex;gap:12px;align-items:center">${gArt(st.running ? "mideum_03" : "mideum_09", "sm")}<div style="flex:1"><div class="gclock" id="gclock" style="text-align:left;font-size:38px">${gClock(gStudySec(st))}</div>
-    <p class="muted">오늘 공부 시간 · 이번 주 ${gHM(st.week)}${st.running ? "<br>믿음이도 옆에서 같이 공부 중" : ""}</p></div></div>
+    <div style="display:flex;gap:12px;align-items:center"><img class="tbart sq" id="gsart" data-i="${gStudyArtIdx(gStudySec(st))}" src="${IMG(G_STUDY_ART[gStudyArtIdx(gStudySec(st))])}" alt="믿음이"><div style="flex:1"><div class="gclock" id="gclock" style="text-align:left;font-size:38px">${gClock(gStudySec(st))}</div>
+    <p class="muted">오늘 공부 시간 · 이번 주 ${gHM(st.week)}<br>공부 15분마다 믿음이가 바뀝니다 (${gStudyArtIdx(gStudySec(st)) + 1}/${G_STUDY_ART.length})</p></div></div>
     <button class="btn ${st.running ? "ghost" : "gold"}" id="gtimer" style="margin-top:10px">${st.running ? "■ 공부 끝 (멈추기)" : "▶ 공부 시작"}</button>
     <p class="muted" style="margin-top:8px">${shield ? `🛡️ 방패병: 공부 1시간마다 우리 성 보호막 +${st.shield}` : `${(G_KLASS[m.profile.klass] || ["⚔️"])[0]} 공부 1시간마다 공격 +${st.atk}`} · 한 번에 최대 ${st.cap}분까지 인정되고, 넘으면 자동으로 멈춥니다.</p>
     ${last ? `<div class="gms"><div class="gbar xp"><i style="width:${Math.min(100, Math.round(st.today / last * 100))}%"></i></div>
@@ -1972,7 +1977,9 @@ function gStudyBind(m){
   const st = m.study; clearInterval(G.tick); if(!st) return;
   if(st.running) G.tick = setInterval(() => {
     const el = $("#gclock"); if(!el || W.tab !== "game"){ clearInterval(G.tick); return; }
-    el.textContent = gClock(gStudySec(st));
+    const sec = gStudySec(st); el.textContent = gClock(sec);
+    const art = $("#gsart"), ai = gStudyArtIdx(sec);
+    if(art && +art.dataset.i !== ai){ art.dataset.i = ai; art.src = IMG(G_STUDY_ART[ai]); art.classList.remove("pop"); void art.offsetWidth; art.classList.add("pop"); const cap = art.parentNode.querySelector("p.muted"); if(cap) cap.innerHTML = cap.innerHTML.replace(/\(\d+\/\d+\)/, `(${ai + 1}/${G_STUDY_ART.length})`); }
     if((Date.now() + G.skew - new Date(st.started).getTime()) / 60000 >= st.cap){ clearInterval(G.tick); toast("최대 시간이 되어 타이머가 멈췄습니다. 계속하려면 다시 시작하세요"); gLoad(true).then(renderGame); }
   }, 1000);
   if($("#gtimer")) $("#gtimer").onclick = async () => {
