@@ -1903,66 +1903,78 @@ function gWinner(war){
   const top = Math.max(...live.map(c => c.hp)), w = live.filter(c => c.hp === top);
   return w.length === 1 ? w[0] : null;
 }
+// ---- 도트 그리기 도우미: 글자 격자 → SVG 사각형 ----
+function gPx(rows, pal, attrs){
+  let o = "";
+  rows.forEach((row, y) => { let x = 0; while(x < row.length){ const ch = row[x]; let w = 1; while(x + w < row.length && row[x + w] === ch) w++; if(pal[ch]) o += `<rect x="${x}" y="${y}" width="${w}" height="1" fill="${pal[ch]}"/>`; x += w; } });
+  return `<svg viewBox="0 0 ${rows[0].length} ${rows.length}" shape-rendering="crispEdges" aria-hidden="true" ${attrs || ""}>${o}</svg>`;
+}
+const G_HEART = [".XX.XX.", "XXXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X..."];
+function gHearts(hp, max){
+  const n = 10, per = (max || 100) / n, full = Math.floor(hp / per + 1e-9), half = hp - full * per >= per / 2 ? 1 : 0, lit = full + half;
+  const one = (kind, last) => {
+    const rows = G_HEART.map(r => [...r].map((c, x) => c === "." ? "." : kind === "full" ? (x === 1 && r === G_HEART[0] ? "L" : "R") : kind === "half" ? (x < 4 ? "R" : "E") : "E").join(""));
+    if(kind === "full") rows[1] = "RLRRRRR";
+    return gPx(rows, { R: "#e2574c", L: "#ffb3ab", E: "#d9d3c4" }, last ? `class="last"` : "");
+  };
+  return `<div class="ghearts${hp / (max || 100) <= 0.3 ? " low" : ""}" role="img" aria-label="체력 ${hp} / ${max}">${Array.from({ length: n }, (_, i) => one(i < full ? "full" : i < lit ? "half" : "empty", i === lit - 1)).join("")}</div>`;
+}
+const gCoin = () => gPx(["..OOOO..", ".OYYYYO.", "OYYLYYYO", "OYYLYYYO", "OYYLYYYO", "OYYLYYYO", ".OYYYYO.", "..OOOO.."], { O: "#8a6a1c", Y: "#f4c842", L: "#fff3b0" }, `class="gcoin"`);
+const G_SPR = {
+  m: ["........HH......", ".....HHHHHH.....", "....HHHHHHHH....", "...HHHHHHHHHH...", "...HHSSSSSSHH...", "...HSSSSSSSSH...", "...SSESSSSESS...", "...SSESSSSESS...", "...SPSSSSSSPS...", "....SSSMMSSS....", ".....SSSSSS.....", "....CCCWWCCC....", "...CCCCCCCCCC...", "...SCCCBBCCCS...", "....CCCCCCCC....", "....DDD..DDD...."],
+  f: ["................", ".....HHHHHH.....", "..RRHHHHHHHHRR..", "..RHHHHHHHHHHR..", "..HHHSSSSSSHHH..", "..HHSSSSSSSSHH..", "..HSSESSSSESSH..", "..HSSESSSSESSH..", "..HSPSSSSSSPSH..", "..HHSSSMMSSSHH..", "..HH.SSSSSS.HH..", "..H.CCCWWCCC.H..", "...CCCCCCCCCC...", "...SCCCBBCCCS...", "....CCCCCCCC....", "....DDD..DDD...."],
+};
 function gFigure(p, lv){
-  const a = p && p.avatar, col = esc((p && p.color) || "#9a958a"), sk = "#fde0c5", hr = a === "f" ? "#5b3a24" : "#2f2a26", dk = "#2b2118";
-  const eye = x => `<ellipse cx="${x}" cy="40.5" rx="3.7" ry="4.8" fill="${dk}"/><circle cx="${x + 1.3}" cy="38.4" r="1.5" fill="#fff"/><circle cx="${x - 1.2}" cy="42.2" r=".8" fill="#fff"/>`;
-  if(!a) return `<svg viewBox="0 0 80 80" aria-hidden="true"><path d="M26 80 Q26 60 40 60 Q54 60 54 80Z" fill="#b9b3a4"/><circle cx="40" cy="36" r="22" fill="#d9d3c4"/><text x="40" y="45" text-anchor="middle" font-size="26" font-weight="900" fill="#8d8573">?</text></svg>`;
-  return `<svg viewBox="0 0 80 80" aria-hidden="true">
-    ${lv >= 3 ? `<path d="M20 80 Q22 58 40 58 Q58 58 60 80Z" fill="#B8902F"/><path d="M33 61 L40 66 L47 61" fill="none" stroke="#8a6a1c" stroke-width="1.5"/>` : ""}
-    ${a === "f" ? `<circle cx="13" cy="44" r="9.5" fill="${hr}"/><circle cx="67" cy="44" r="9.5" fill="${hr}"/><path d="M17 40 Q14 10 40 10 Q66 10 63 40Z" fill="${hr}"/>` : `<path d="M17 38 Q14 10 40 10 Q66 10 63 38Z" fill="${hr}"/>`}
-    <path d="M27 80 Q27 61 40 61 Q53 61 53 80Z" fill="${col}"/>
-    <ellipse cx="40" cy="62.5" rx="9" ry="3.6" fill="#000" opacity=".16"/>
-    <path d="M37 64 V70 M43 64 V70" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
-    <circle cx="18.5" cy="39" r="3.6" fill="${sk}"/><circle cx="61.5" cy="39" r="3.6" fill="${sk}"/>
-    <circle cx="40" cy="36" r="22" fill="${sk}"/>
-    ${a === "f"
-      ? `<path d="M18 37 Q15 12 40 12 Q65 12 62 37 Q58 27 52 24 Q46 31 40 24 Q34 31 28 24 Q22 27 18 37Z" fill="${hr}"/><path d="M12 36 l-5 -4 v8Z M12 36 l5 -4 v8Z" fill="#ff8fa3"/><circle cx="12" cy="36" r="1.8" fill="#e85d75"/><path d="M68 36 l-5 -4 v8Z M68 36 l5 -4 v8Z" fill="#ff8fa3"/><circle cx="68" cy="36" r="1.8" fill="#e85d75"/>`
-      : `<path d="M18 35 Q15 12 40 12 Q65 12 62 35 Q58 25 50 22 Q45 29 38 24 Q31 29 26 23 Q20 27 18 35Z" fill="${hr}"/><path d="M38 13 Q42 3 51 7 Q45 9 45 14Z" fill="${hr}"/>`}
-    ${eye(31)}${eye(49)}
-    <ellipse cx="24.5" cy="47" rx="4.2" ry="2.5" fill="#ff9aa2" opacity=".65"/><ellipse cx="55.5" cy="47" rx="4.2" ry="2.5" fill="#ff9aa2" opacity=".65"/>
-    <path d="M36 48.5 Q40 53.5 44 48.5Z" fill="#c0604a"/>
-    ${lv >= 8 ? `<path d="M27 14 L29 2 L35 9 L40 0 L45 9 L51 2 L53 14Z" fill="#f2cf63" stroke="#8a6a1c" stroke-width="1.2" stroke-linejoin="round"/><circle cx="40" cy="9" r="1.8" fill="#e2574c"/>`
-      : lv >= 5 ? `<path d="M19 27 Q40 17 61 27" fill="none" stroke="#e2574c" stroke-width="4" stroke-linecap="round"/><path d="M40 15 l2.2 4.6 5 .6 -3.7 3.4 1 5 -4.5 -2.5 -4.5 2.5 1 -5 -3.7 -3.4 5 -.6Z" fill="#f2cf63" stroke="#8a6a1c" stroke-width=".8"/>` : ""}
-  </svg>`;
+  const a = p && p.avatar, col = esc((p && p.color) || "#9a958a");
+  if(!G_SPR[a]) return gPx(G_SPR.m.map(r => r.replace(/[^.]/g, "X")), { X: "#b9b3a4" }).replace("</svg>", `<text x="8" y="10.5" text-anchor="middle" font-size="7" font-weight="900" fill="#fff">?</text></svg>`);
+  const g = G_SPR[a].map(r => [...r]);
+  if(lv >= 3) for(let y = 11; y <= 14; y++) for(let x = 2; x <= 13; x++) if(g[y][x] === ".") g[y][x] = "G";
+  if(lv >= 8){ [5, 7, 8, 10].forEach(x => g[0][x] = "G"); for(let x = 5; x <= 10; x++) g[1][x] = x === 7 || x === 8 ? "T" : "G"; if(a === "m"){ g[0][9] = "."; } }
+  else if(lv >= 5){ for(let x = 3; x <= 12; x++) g[3][x] = x === 7 || x === 8 ? "G" : "T"; }
+  return gPx(g.map(r => r.join("")), { H: a === "f" ? "#6b4226" : "#2f2a26", S: "#fde0c5", E: "#2b2118", P: "#ff9aa2", M: "#c0604a", C: col, W: "#ffffff", B: "#f4c842", D: "#3a2c20", R: "#ff6f91", G: "#f4c842", T: "#e2574c" });
 }
 function gAvatar(p, sm, lv){
   const k = G_KLASS[p && p.klass], col = esc((p && p.color) || "#9a958a");
-  return `<div class="gava${sm ? " sm" : ""}" style="background:color-mix(in srgb, ${col} 20%, #fff);border:2px solid ${col}">${gFigure(p, lv || (p && p.level) || 1)}${k ? `<span class="wp">${k[0]}</span>` : ""}</div>`;
+  return `<div class="gava${sm ? " sm" : ""}" style="background:color-mix(in srgb, ${col} 18%, #fff);border:2px solid ${col}">${gFigure(p, lv || (p && p.level) || 1)}${k ? `<span class="wp">${k[0]}</span>` : ""}</div>`;
 }
 function gCastle(c, max){
   const r = max ? c.hp / max : 1, st = c.hp <= 0 ? 4 : r <= 0.25 ? 3 : r <= 0.5 ? 2 : r <= 0.75 ? 1 : 0;
-  const col = esc(c.color || "#16243F"), wall = "#d6cfbd", wall2 = "#c2baa6", ln = "#8d8573", dark = "#5a4632";
-  const cren = (x, y, n, w) => Array.from({ length: n }, (_, i) => `<rect x="${x + i * w * 1.6}" y="${y}" width="${w}" height="9" fill="${wall}" stroke="${ln}" stroke-width="1.2"/>`).join("");
-  const smoke = (x, y) => `<g class="gsmoke"><circle cx="${x}" cy="${y}" r="7" fill="#6f6a60" opacity=".55"/><circle cx="${x + 7}" cy="${y - 10}" r="9" fill="#857f74" opacity=".4"/><circle cx="${x - 3}" cy="${y - 22}" r="11" fill="#9a958a" opacity=".28"/></g>`;
-  const fire = (x, y, s) => `<g class="gfire" transform="translate(${x} ${y}) scale(${s})"><path d="M0 0 Q-9 -12 -2 -22 Q-1 -14 4 -18 Q10 -8 6 0Z" fill="#e2574c"/><path d="M1 0 Q-4 -7 0 -13 Q5 -7 4 0Z" fill="#f6c445"/></g>`;
-  const arrows = c.dmg > 0 && st < 4 ? `<g class="garrows" stroke="#3b3226" stroke-width="2" stroke-linecap="round"><line x1="0" y1="0" x2="14" y2="10"/><line x1="26" y1="-8" x2="40" y2="2"/><line x1="-18" y1="14" x2="-4" y2="24"/></g>` : "";
-  if(st === 4) return `<svg class="gcsvg" viewBox="0 0 200 170" role="img" aria-label="${esc(c.name)} 성 — 함락">
-    <ellipse cx="100" cy="150" rx="92" ry="12" fill="#b9b19c"/>
-    <path d="M22 148 V118 L34 124 L42 108 L54 120 L66 112 L70 148Z" fill="${wall2}" stroke="${ln}" stroke-width="1.5"/>
-    <path d="M72 148 V96 L84 104 L92 84 L104 100 L116 90 L128 108 V148Z" fill="${wall}" stroke="${ln}" stroke-width="1.5"/>
-    <path d="M132 148 V122 L146 114 L156 128 L170 120 L178 148Z" fill="${wall2}" stroke="${ln}" stroke-width="1.5"/>
-    <path d="M88 148 V128 Q100 116 112 128 V148Z" fill="${dark}"/>
-    <path d="M40 146 L120 150" stroke="${ln}" stroke-width="3"/><path d="M120 150 L150 140 L122 138Z" fill="${col}" opacity=".7"/>
-    <circle cx="60" cy="150" r="6" fill="${wall2}" stroke="${ln}"/><circle cx="150" cy="152" r="5" fill="${wall2}" stroke="${ln}"/><circle cx="118" cy="154" r="4" fill="${wall}" stroke="${ln}"/>
-    ${smoke(60, 108)}${smoke(142, 110)}${fire(100, 96, 1)}</svg>`;
-  return `<svg class="gcsvg" viewBox="0 0 200 170" role="img" aria-label="${esc(c.name)} 성 — 체력 ${Math.round(r * 100)}%">
-    <ellipse cx="100" cy="150" rx="92" ry="12" fill="#b9b19c"/>
-    <line x1="100" y1="6" x2="100" y2="40" stroke="${dark}" stroke-width="2.5"/><path class="gflag" d="M101 8 L134 16 L101 25Z" fill="${col}"/>
-    <rect x="22" y="100" width="156" height="48" fill="${wall2}" stroke="${ln}" stroke-width="1.5"/>
-    ${cren(24, 92, 3, 8)}${cren(140, 92, 3, 8)}
-    <rect x="30" y="66" width="38" height="82" fill="${wall}" stroke="${ln}" stroke-width="1.5"/>${cren(30, 58, 3, 8.6)}
-    ${st >= 2 ? `<path d="M132 148 V78 L140 70 L146 80 L154 64 L160 76 L170 72 V148Z" fill="${wall}" stroke="${ln}" stroke-width="1.5"/>` : `<rect x="132" y="66" width="38" height="82" fill="${wall}" stroke="${ln}" stroke-width="1.5"/>${cren(132, 58, 3, 8.6)}`}
-    <rect x="70" y="42" width="60" height="106" fill="${wall}" stroke="${ln}" stroke-width="1.5"/>${cren(70, 34, 4, 9.6)}
-    <rect x="42" y="74" width="14" height="26" fill="${col}"/><path d="M42 100 L49 94 L56 100Z" fill="${wall}"/>
-    <rect x="144" y="${st >= 2 ? 88 : 74}" width="14" height="26" fill="${col}"/>
-    <rect x="45" y="112" width="8" height="14" rx="4" fill="${dark}"/><rect x="147" y="118" width="8" height="14" rx="4" fill="${dark}"/>
-    <circle cx="100" cy="72" r="15" fill="#fff" stroke="${col}" stroke-width="3"/><text x="100" y="79" text-anchor="middle" font-size="18">${esc(c.emoji || "🏰")}</text>
-    <path d="M86 148 V118 Q100 100 114 118 V148Z" fill="${dark}"/><path d="M100 104 V148 M92 110 V148 M108 110 V148" stroke="#3b2d1f" stroke-width="1.5"/>
-    ${st >= 1 ? `<path d="M76 52 L84 66 L79 78 L88 92" fill="none" stroke="#5f584a" stroke-width="2"/><path d="M36 120 L46 130 L40 142" fill="none" stroke="#5f584a" stroke-width="2"/><path d="M160 104 L168 116 L162 128" fill="none" stroke="#5f584a" stroke-width="2"/>` : ""}
-    ${st >= 2 ? `<path d="M120 46 L112 60 L122 72 L114 88 L124 104" fill="none" stroke="#5f584a" stroke-width="2.2"/><circle cx="178" cy="150" r="5" fill="${wall}" stroke="${ln}"/><circle cx="168" cy="154" r="4" fill="${wall2}" stroke="${ln}"/>${smoke(152, 58)}` : ""}
-    ${st >= 3 ? `${fire(50, 60, 1.1)}${fire(104, 36, 1.3)}${fire(128, 104, .9)}${smoke(48, 40)}<circle cx="26" cy="152" r="5" fill="${wall}" stroke="${ln}"/><path d="M70 42 h14 v-8 h-14Z" fill="#f5f3ee" opacity="0"/>` : ""}
-    ${c.shield > 0 ? `<path class="gshield" d="M12 150 Q12 16 100 10 Q188 16 188 150" fill="rgba(79,143,221,.10)" stroke="#4f8fdd" stroke-width="2.5" stroke-dasharray="7 5"/>` : ""}
-    <g transform="translate(60 6)">${arrows}</g></svg>`;
+  const col = esc(c.color || "#16243F"), A = "#ece4cf", B = "#d5cbb2", Sh = "#b9ae93", ln = "#4a3f33", dk = "#3a2c20", ck = "#5f584a";
+  const R = (x, y, w, h, f, o) => `<rect x="${x * 5}" y="${y * 5}" width="${w * 5}" height="${h * 5}" fill="${f}"${o ? ` stroke="${ln}" stroke-width="1.5"` : ""}/>`;
+  const T = (x, y, w, h, f) => R(x, y, w, h, f) + R(x + w - 1, y, 1, h, Sh) + `<rect x="${x * 5}" y="${y * 5}" width="${w * 5}" height="${h * 5}" fill="none" stroke="${ln}" stroke-width="1.5"/>`;
+  const cren = (x, y, n, f) => Array.from({ length: n }, (_, i) => R(x + i * 3, y, 2, 2, f, 1)).join("");
+  const P = (...xy) => xy.map(([x, y]) => R(x, y, 1, 1, ck)).join("");
+  const smoke = (x, y) => `<g class="gsmoke">${R(x, y, 2, 2, "#77726a")}${R(x + 1, y - 3, 2, 2, "#8f8a80")}${R(x - 1, y - 5, 3, 2, "#a9a498")}</g>`;
+  const fire = (x, y) => `<g class="gfire">${R(x, y - 2, 3, 2, "#e2574c")}${R(x + 1, y - 4, 1, 2, "#e2574c")}${R(x, y - 3, 1, 1, "#e2574c")}${R(x + 1, y - 2, 1, 2, "#f6c445")}</g>`;
+  const dusk = st >= 3, sky = dusk ? ["#e59a6c", "#f0b885", "#f8d8ab"] : ["#7cc4f0", "#9bd3f5", "#c3e6fa"], cl = dusk ? "#fbe6cc" : "#fff";
+  const scene = R(0, 0, 41, 14, sky[0]) + R(0, 14, 41, 7, sky[1]) + R(0, 21, 41, 5, sky[2])
+    + R(3, 3, 6, 1, cl) + R(2, 4, 8, 1, cl) + R(31, 6, 5, 1, cl) + R(30, 7, 7, 1, cl)
+    + R(0, 26, 41, 4, "#5fb548") + R(0, 26, 41, 1, "#8ad66a") + [[2, 28], [9, 29], [16, 28], [27, 29], [34, 28], [39, 29]].map(([x, y]) => R(x, y, 1, 1, "#3f8f2c")).join("");
+  const open = (label) => `<svg class="gcsvg" viewBox="0 0 205 150" shape-rendering="crispEdges" role="img" aria-label="${esc(c.name)} 성 — ${label}">${scene}`;
+  if(st === 4) return open("함락")
+    + R(5, 21, 8, 5, B, 1) + R(5, 19, 3, 2, B, 1) + R(10, 20, 2, 1, B, 1)
+    + R(15, 16, 11, 10, A, 1) + R(15, 14, 3, 2, A, 1) + R(20, 15, 2, 1, A, 1) + R(23, 13, 3, 3, A, 1) + R(18, 21, 5, 5, dk)
+    + R(28, 22, 8, 4, B, 1) + R(33, 20, 3, 2, B, 1)
+    + R(2, 25, 2, 1, A, 1) + R(13, 25, 2, 1, A, 1) + R(26, 25, 2, 1, A, 1) + R(37, 25, 3, 1, B, 1)
+    + R(36, 23, 3, 1, col) + R(37, 22, 2, 1, col) + P([17, 18], [16, 19], [24, 17], [30, 23])
+    + smoke(8, 17) + smoke(31, 18) + fire(19, 14) + `</svg>`;
+  return open(`체력 ${Math.round(r * 100)}%`)
+    + R(20, 0, 1, 4, dk) + `<g class="gflag">${R(21, 0, 4, 1, col)}${R(21, 1, 5, 1, col)}${R(21, 2, 4, 1, col)}</g>`
+    + R(3, 17, 35, 9, B, 1) + cren(3, 15, 12, B)
+    + R(13, 23, 2, 1, A) + R(27, 21, 1, 1, A) + R(36, 20, 2, 1, A) + R(3, 22, 2, 1, A)
+    + T(5, 11, 8, 15, A) + cren(5, 9, 3, A) + R(8, 13, 2, 3, dk) + R(7, 18, 4, 5, col) + R(8, 22, 2, 1, A)
+    + (st >= 2
+      ? T(28, 15, 8, 11, A) + R(28, 13, 2, 2, A, 1) + R(31, 12, 2, 3, A, 1) + R(34, 14, 2, 1, A, 1) + R(30, 19, 4, 5, col) + R(31, 23, 2, 1, A) + R(38, 25, 2, 1, B, 1) + R(1, 25, 1, 1, B, 1)
+      : T(28, 11, 8, 15, A) + cren(28, 9, 3, A) + R(31, 13, 2, 3, dk) + R(30, 18, 4, 5, col) + R(31, 22, 2, 1, A))
+    + T(15, 6, 11, 20, A) + cren(15, 4, 4, A)
+    + R(17, 8, 7, 7, col) + R(18, 9, 5, 5, "#fff") + `<text x="102.5" y="64" text-anchor="middle" font-size="18">${esc(c.emoji || "🏰")}</text>`
+    + R(18, 20, 5, 6, dk) + R(19, 19, 3, 1, dk) + R(19.8, 20, .4, 6, "#6b5540") + R(21.8, 20, .4, 6, "#6b5540")
+    + (st >= 1 ? P([25, 7], [24, 8], [24, 9], [25, 10], [25, 11], [11, 13], [10, 14], [11, 15], [14, 19], [13, 20], [14, 21]) : "")
+    + (st >= 2 ? P([16, 15], [16, 16], [15, 17], [6, 20], [5, 21], [35, 19], [34, 20]) + smoke(32, 10) : "")
+    + (st >= 3 ? fire(8, 9) + fire(16, 4) + fire(26, 15) + smoke(10, 4) : "")
+    + (c.shield > 0 ? `<path class="gshield" d="M10 130 V50 H20 V30 H30 V20 H50 V10 H155 V20 H175 V30 H185 V50 H195 V130" fill="rgba(79,143,221,.14)" stroke="#4f8fdd" stroke-width="3" stroke-dasharray="10 5"/>` : "")
+    + (c.dmg > 0 ? `<g transform="translate(60 10)"><g class="garrows">${[[0, 0], [1, 1], [2, 2], [6, -2], [7, -1], [8, 0], [-4, 3], [-3, 4], [-2, 5]].map(([x, y]) => R(x, y, 1, 1, dk)).join("")}</g></g>` : "")
+    + `</svg>`;
 }
 function gWarHtml(war, myClan){
   if(!war || !war.clans || !war.clans.length){
@@ -2244,15 +2256,15 @@ async function renderGame(){
         <div class="gcap"><span>경험치 ${m.xp}</span><span>다음 레벨까지 ${m.lv_to - m.xp}</span></div>
       </div></div>
       <div style="margin-top:12px"><div class="gcap"><span>❤️ 이번 주 체력</span><span>${m.hp} / ${m.hp_max}</span></div>
-        <div class="gbar hp ${gHpClass(m.hp, m.hp_max)}"><i style="width:${hpPct}%"></i></div>
+        ${gHearts(m.hp, m.hp_max)}
         ${m.hp <= 0 ? `<div class="gsay">${gArt("director_03", "sm")}<div class="bb"><b style="color:var(--bad)">체력이 0이다.</b><br>원장실로 와라. 얘기 좀 하자.</div></div>` : `<p class="muted">벌점을 받으면 깎이고, 월요일마다 회복됩니다.</p>`}</div>
-      <div style="margin-top:8px"><span class="gpill fire">🔥 연속 ${m.streak}일</span><span class="gpill">이번 주 공격 ${myAtk}</span>${myPen ? `<span class="gpill" style="background:#fde8e4;color:var(--bad)">벌점 ${myPen}</span>` : ""}</div>
+      <div style="margin-top:8px"><span class="gpill fire">🔥 연속 ${m.streak}일</span><span class="gpill">${gCoin()}이번 주 공격 ${myAtk}</span>${myPen ? `<span class="gpill" style="background:#fde8e4;color:var(--bad)">벌점 ${myPen}</span>` : ""}</div>
       ${m.dog ? `<div class="gdog"><img src="${gDogImg(m.hp, m.hp_max)}" alt="믿음이"><div><b style="color:var(--navy)">믿음이</b><div class="muted">${m.hp / m.hp_max <= 0.3 ? "체력이 바닥이라 믿음이가 지쳤습니다." : m.hp / m.hp_max <= 0.6 ? "믿음이가 걱정하고 있습니다." : "믿음이가 신나게 따라옵니다."}</div></div></div>`
         : `<div class="gdog"><div class="q">?</div><div><b style="color:var(--navy)">동료가 기다리고 있습니다</b><div class="muted">${m.dog_streak}일 연속 가점을 받으면 합류합니다. 지금 ${Math.min(m.streak, m.dog_streak)} / ${m.dog_streak}일</div></div></div>`}
       <button class="btn sm ghost" id="gedit" style="margin-top:12px">캐릭터 바꾸기</button>
     </div>
     <div class="card"><h2>오늘의 공격 기회</h2>
-      ${todo.map(([ok, r, sub]) => `<div class="gtodo"><span class="ic">${ok ? "✅" : "⬜"}</span><div style="flex:1"><b>${esc(r.emoji)} ${esc(r.label)}</b> <span class="p" style="color:var(--ok);font-weight:900">+${r.pts}</span><div class="muted">${esc(sub)}</div></div></div>`).join("")}
+      ${todo.map(([ok, r, sub]) => `<div class="gtodo"><span class="ic">${ok ? "✅" : "⬜"}</span><div style="flex:1"><b>${esc(r.emoji)} ${esc(r.label)}</b> <span class="p" style="color:var(--ok);white-space:nowrap">${gCoin()}+${r.pts}</span><div class="muted">${esc(sub)}</div></div></div>`).join("")}
     </div>
     <div class="card"><h2>이번 주 공성전 <span class="muted" style="font-weight:400">· 일요일 밤 마감</span></h2>
       ${lw ? `<p class="muted" style="margin-bottom:6px">지난주 승리: <b style="color:var(--navy)">${esc(lw.emoji)} ${esc(lw.name)}</b></p>` : ""}
@@ -2576,6 +2588,194 @@ gStudentInject = async function(){
   if(!m) return;
   document.querySelectorAll("[data-w]").forEach(card => { const a = m[card.dataset.w]; if(a && !card.querySelector(".aibox")) card.insertAdjacentHTML("beforeend", aiHtml(a, true)); });
 };
+
+// ================= 레트로(16비트풍) 테마 =================
+// 원칙: 제목·버튼·숫자·딱지는 도트 글꼴(Galmuri, OFL), 읽는 문장은 Noto Sans KR 그대로.
+// 믿음이·원장 그림은 손대지 않고 도트 액자에만 넣는다.
+(function(){
+  const ln = document.createElement("link"); ln.rel = "stylesheet"; ln.href = "https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/galmuri.css"; document.head.appendChild(ln);
+  const st = document.createElement("style");
+  st.textContent = `
+  :root{--bg:#F1EDE0;--line:#d6cfbc;--sub:#535968;--px:#16243F;--pxs:#cbc3ab;--sun:#f4c842;--sund:#a37f14;
+    --pf:'Galmuri11','Noto Sans KR',system-ui,sans-serif;--pf14:'Galmuri14','Noto Sans KR',system-ui,sans-serif;
+    --fr:-3px 0 0 0 var(--fc,var(--px)),3px 0 0 0 var(--fc,var(--px)),0 -3px 0 0 var(--fc,var(--px)),0 3px 0 0 var(--fc,var(--px))}
+  html,body{background-color:var(--bg);background-image:linear-gradient(rgba(22,36,63,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(22,36,63,.04) 1px,transparent 1px);background-size:16px 16px}
+  body{line-height:1.5}
+  .muted{color:var(--sub)}
+
+  /* 머리띠 */
+  .top{border-bottom:0;box-shadow:0 4px 0 var(--sun),0 8px 0 var(--sund);margin-bottom:8px;
+    background:linear-gradient(var(--sun),var(--sun)) 8% 30%/3px 3px no-repeat,linear-gradient(#fff,#fff) 22% 72%/2px 2px no-repeat,linear-gradient(#fff,#fff) 47% 18%/2px 2px no-repeat,linear-gradient(var(--sun),var(--sun)) 63% 78%/3px 3px no-repeat,linear-gradient(#fff,#fff) 81% 26%/2px 2px no-repeat,linear-gradient(#fff,#fff) 94% 64%/3px 3px no-repeat,var(--navy)}
+  .top .brand{font-family:var(--pf);font-size:12px;letter-spacing:1.5px;color:var(--sun)}
+  .top h1{font-family:var(--pf);font-weight:700;font-size:22px;letter-spacing:.5px;text-shadow:2px 2px 0 rgba(0,0,0,.45)}
+  .top .chip{font-family:var(--pf);font-size:12px;border:2px solid rgba(255,255,255,.55);border-radius:0;background:rgba(0,0,0,.2);box-shadow:none;color:#fff;padding:4px 9px}
+  .sndbtn{border-radius:0;border:2px solid rgba(255,255,255,.4)}
+
+  /* 대화창식 카드 */
+  .card{border:0;border-radius:0;margin:3px 3px 20px;box-shadow:var(--fr),0 8px 0 0 var(--pxs)}
+  .card h2{font-family:var(--pf14);font-weight:400;font-size:16px;line-height:1.35;padding-bottom:8px;margin-bottom:10px;border-bottom:2px dashed var(--line)}
+  .card h2 .muted,.card h2 small{font-family:'Noto Sans KR',system-ui,sans-serif;font-size:12px}
+  .coach{border-radius:0;--fc:#b8902f}
+  .gstudy.on{--fc:#2f7d4f;box-shadow:var(--fr),0 8px 0 0 #a9d3b6}
+
+  /* 눌리는 버튼 */
+  .btn{font-family:var(--pf14);font-weight:400;font-size:16px;border-radius:0;border:0;margin:3px;width:calc(100% - 6px);padding:13px 10px;
+    box-shadow:-3px 0 0 #0a1224,3px 0 0 #0a1224,0 -3px 0 #0a1224,0 3px 0 #0a1224,inset 0 -5px 0 rgba(0,0,0,.3),inset 0 3px 0 rgba(255,255,255,.16);transition:transform .05s}
+  .btn:active:not(:disabled),.gbtn:active,.opt:active,.gpick button:active,.gb:active:not(:disabled),.tabs button:active,.wtabs button:active,.aibtn:active:not(:disabled){transform:translateY(3px)}
+  .btn:active:not(:disabled){box-shadow:-3px 0 0 #0a1224,3px 0 0 #0a1224,0 -3px 0 #0a1224,0 3px 0 #0a1224,inset 0 3px 0 rgba(0,0,0,.25)}
+  .btn.gold{background:var(--sun);color:var(--px)}
+  .btn.ghost{background:#fff;color:var(--px);border:0;box-shadow:-3px 0 0 var(--px),3px 0 0 var(--px),0 -3px 0 var(--px),0 3px 0 var(--px),inset 0 -5px 0 #e6dfca}
+  .btn.sm{font-family:var(--pf);font-size:12px;width:auto;padding:8px 12px;border-radius:0}
+  .field{border:2px solid var(--px);border-radius:0;box-shadow:inset 0 3px 0 #ece6d4}
+  textarea,.card textarea{border:2px solid var(--px)!important;border-radius:0!important}
+  .field:focus{border-color:var(--px);outline:3px solid var(--sun);outline-offset:0}
+
+  /* 탭 */
+  .tabs button,.wtabs button{font-family:var(--pf14);font-weight:400;font-size:15px;border-radius:0;border:2px solid var(--px);color:var(--px);background:#fff;box-shadow:0 4px 0 var(--pxs);padding:10px 2px}
+  .tabs button.on,.wtabs button.on{background:var(--px);color:#fff;border-color:var(--px);box-shadow:0 4px 0 var(--sun)}
+  .wtabs{margin-top:14px;padding-bottom:4px}
+
+  /* 숫자·딱지 */
+  .stat{background:#fff;border:2px solid var(--px);border-radius:0;box-shadow:0 4px 0 var(--pxs)}
+  .stat b{font-family:var(--pf);font-weight:700;font-size:24px}
+  .stat span{font-size:12px;color:var(--sub)}
+  .big,.done .big{font-family:var(--pf);font-weight:700;font-size:48px;text-shadow:3px 3px 0 var(--sund);color:var(--sun)}
+  .badge,.gpill,.gchip,.gwarn,.glv,.qtag,.stage,.gcs .tag,.gclan .tag{font-family:var(--pf);font-weight:400;font-size:12px;border-radius:0}
+  .badge{border:1.5px solid currentColor}
+  .gpill{border:1.5px solid var(--px);background:#fff;padding:3px 8px}
+  .gpill.fire{border-color:#b85c00}
+  .glv{background:var(--px);padding:3px 8px;box-shadow:2px 2px 0 var(--sun)}
+  .stage{border-width:1.5px}
+  .dday{font-family:var(--pf)}
+  th,.brd th{font-family:var(--pf);font-weight:400;font-size:12px}
+  .brd{border-radius:0;outline:2px solid var(--px)}
+  .bar,.prog{border-radius:0;border:2px solid var(--px);height:12px;background:#fff}
+  .prog i{background:var(--sun)}
+  .legend i{border-radius:0}
+  .msg,.fb,.fb .ctx,.fb .why,.coach .note{border-radius:0}
+  .fb{border:2px solid currentColor}
+  .msg{background:#fff;border:2px solid var(--px);border-left:6px solid var(--gold)}
+  .toast{font-family:var(--pf14);font-size:15px;border-radius:0;border:3px solid var(--sun);box-shadow:0 5px 0 rgba(0,0,0,.25)}
+  .kv span:last-child{font-family:var(--pf);font-weight:700}
+
+  /* 단어 시험 */
+  .opt{border:2px solid var(--px);border-radius:0;box-shadow:0 4px 0 var(--pxs);font-weight:500}
+  .opt.ok{box-shadow:0 4px 0 #9fcfae}.opt.bad{box-shadow:0 4px 0 #e2b1ab}
+  .chip{border:2px solid var(--px);border-radius:0;box-shadow:0 3px 0 var(--pxs)}
+  .spk{border-radius:0;border:2px solid var(--px);background:#fff}
+  .blank{border-radius:0}.blank i{border-radius:0}
+  .wz_drop{border-radius:0;border:3px dashed var(--px)}
+  .wz_stu label{border-radius:0;border:2px solid var(--line)}
+  .wz_row input{border-radius:0}
+  .prow select,.prow input,.grow input,.grow select,.gset input{border-radius:0;border:2px solid var(--px)}
+  .prow .pl{font-family:var(--pf);font-weight:400}
+
+  /* 결과 화면 */
+  .gtitle{font-family:var(--pf);letter-spacing:0;text-shadow:4px 4px 0 var(--tc),0 8px 24px rgba(0,0,0,.5)}
+  .glabel{font-family:var(--pf);border-radius:0;letter-spacing:2px;border:2px solid #E2CD96}
+  .gpose{border-radius:0}
+  .gstat{border-radius:0;border:2px solid rgba(255,255,255,.35)}
+  .gstat b{font-family:var(--pf)}
+  .ggbar,.ggbar i{border-radius:0}.ggbar{border:2px solid rgba(255,255,255,.5);height:14px}
+  .gbtn{font-family:var(--pf14);font-weight:400;border-radius:0}
+  .gbtn.main{background:var(--sun);box-shadow:-3px 0 0 #0a1224,3px 0 0 #0a1224,0 -3px 0 #0a1224,0 3px 0 #0a1224,inset 0 -5px 0 var(--sund)}
+  .gpop,.combo{border-radius:0;border:3px solid var(--sun)}
+  .gpop b,.combo b{font-family:var(--pf)}
+
+  /* 공성전 */
+  .gbanner{border-radius:0;border-bottom:0;margin:3px 3px 20px;box-shadow:-3px 0 0 #0a1224,3px 0 0 #0a1224,0 -3px 0 #0a1224,0 3px 0 #0a1224,0 8px 0 0 var(--sun);
+    background:linear-gradient(var(--sun),var(--sun)) 96% 18%/3px 3px no-repeat,linear-gradient(#fff,#fff) 88% 62%/2px 2px no-repeat,linear-gradient(#fff,#fff) 70% 14%/2px 2px no-repeat,linear-gradient(var(--sun),var(--sun)) 55% 86%/3px 3px no-repeat,var(--navy)}
+  .gbanner b{font-family:var(--pf);font-weight:700;font-size:22px;color:var(--sun);text-shadow:2px 2px 0 rgba(0,0,0,.5)}
+  .gbanner span{color:#eef0f5;font-size:14px}
+  .tbart{border-radius:0;border:2px solid var(--px);background:#fff}
+  .gbanner .tbart{border-color:var(--sun)}
+  .tbart.sq{background:#fff;box-shadow:0 4px 0 var(--pxs)}
+  .gava{border-radius:0;border-width:3px!important;box-shadow:0 4px 0 var(--pxs)}
+  .gava svg,.gava.sm svg{border-radius:0}
+  .gava.sm{border-width:2px!important;box-shadow:none}
+  .gava .wp{border-radius:0;border:2px solid var(--px)}
+  .gava.sm .wp{border-width:1px}
+  .gclock{font-family:var(--pf);font-weight:700;letter-spacing:2px}
+  .gbar{height:18px;border-radius:0;border:2px solid var(--px);background:#fff;margin:5px 0 3px}
+  .gbar i{border-radius:0;transition:width .6s steps(8);background-image:repeating-linear-gradient(90deg,transparent 0 9px,rgba(255,255,255,.75) 9px 11px)!important;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18),inset 0 3px 0 rgba(255,255,255,.3)}
+  .gbar.xp i{background-color:var(--sun)}
+  .gbar.hp i{background-color:#3fae5f}.gbar.hp.mid i{background-color:#e8a41c}.gbar.hp.low i{background-color:#e2574c}
+  .gbar.castle{height:20px}
+  .gcap{font-size:12px;color:var(--sub)}
+  .gcap span:last-child{font-family:var(--pf);font-weight:400;color:var(--px)}
+  .ghearts{display:flex;gap:3px;flex-wrap:wrap;margin:6px 0 4px}
+  .ghearts svg{width:24px;height:21px;display:block}
+  .ghearts.low svg.last{animation:gblink 1s steps(1) infinite}
+  @keyframes gblink{50%{opacity:.25}}
+  .gcoin{width:14px;height:14px;vertical-align:-2px;margin-right:3px}
+  .gdog{border-radius:0;background:#fff;border:2px dashed var(--px)}
+  .gdog .q{border-radius:0;border:3px dashed var(--gold);font-family:var(--pf)}
+  .gtodo .p,.gent .p,.gfeed .p{font-family:var(--pf);font-weight:700}
+  .gtix{border-radius:0;border:2px dashed var(--px);background:#fff8e0}
+  .gtix.used{background:#fff}
+  .gpick button{font-family:var(--pf14);font-weight:400;font-size:15px;border-radius:0;border:2px solid var(--px);box-shadow:0 4px 0 var(--pxs)}
+  .gpick button.on{background:var(--sun);border-color:var(--px);box-shadow:0 4px 0 var(--sund)}
+  .gpick button.sw{border-radius:0;border:3px solid var(--px)}
+  .gpick button.sw.on{outline:4px solid var(--sun);outline-offset:2px}
+  .gb{font-family:var(--pf);font-weight:400;font-size:12px;border-radius:0;box-shadow:0 3px 0 var(--pxs);padding:9px 10px}
+  .gb.pen{border-width:2px}.gb.rew{border-width:2px;border-color:var(--px);background:#fff3c4;color:var(--px)}.gb.neu{border:2px solid var(--line)}
+  .gchip button{font-family:inherit}
+  .gquote{border-radius:0;background:#fff;border:2px solid var(--px);border-left:6px solid var(--gold);box-shadow:0 4px 0 var(--pxs)}
+  .gquote .en{font-size:15px}.gquote .ko{font-size:15px;color:var(--ink)}
+  .gsay .bb{border-radius:0;background:#fff;border:2px solid var(--px);box-shadow:0 4px 0 var(--pxs);color:var(--ink)}
+  .gprize{border-radius:0;border:3px solid var(--px);background:#fff8e0;position:relative;box-shadow:0 6px 0 var(--sun)}
+  .gprize.none{border-color:var(--line);box-shadow:none}
+  .gprize b{font-family:var(--pf14);font-weight:400}
+  .gprize:not(.none)::before,.gprize:not(.none)::after{content:"";position:absolute;width:6px;height:6px;background:var(--sun);box-shadow:12px 18px 0 #fff,-10px 30px 0 var(--sun),20px 44px 0 var(--sun);animation:gblink .6s steps(1) infinite}
+  .gprize:not(.none)::before{left:22px;top:14px}.gprize:not(.none)::after{right:38px;top:20px;animation-delay:.3s}
+  .gms .mk small{font-family:var(--pf);font-weight:400}
+  .grk{border-bottom:2px dotted var(--line)}
+  .grk.me{border-radius:0;outline:2px solid var(--px);background:#fff3c4}
+  .grk .no{font-family:var(--pf);font-weight:700}
+  .grk .tm{font-family:var(--pf);font-weight:400;font-size:13px}
+  .gmvp{border-radius:0;border:2px solid var(--px);background:#fff8e0;box-shadow:0 4px 0 var(--sun)}
+  .gmvp.none{border-style:dashed;box-shadow:none}
+  .gmvp .t{font-family:var(--pf);font-weight:400;font-size:12px;color:#8a6a1c}
+
+  /* 성: 그림 한 칸이 하늘·구름·잔디까지 품은 장면 */
+  .gfield{background:none;padding:3px;gap:16px;border-radius:0;align-items:stretch}
+  .gcs{background:#fff;border:0;border-radius:0;padding:0 0 10px;box-shadow:var(--fr),0 8px 0 0 var(--pxs)}
+  .gcs.mine{--fc:#16243F;background:#fff8e0;box-shadow:var(--fr),0 8px 0 0 var(--sun)}
+  .gcsvg{width:100%;max-width:none;border-bottom:3px solid var(--px);margin-bottom:6px}
+  .gcs>h3{padding:0 8px;font-family:var(--pf14);font-weight:400;font-size:15px}
+  .gcs>h3 .muted{font-family:'Noto Sans KR',system-ui,sans-serif;font-size:12px}
+  .gcs>.gbar{margin:5px 8px 3px}
+  .gcs>.gcap{padding:0 8px;white-space:normal}
+  .gcs .gcap span:first-child{font-family:var(--pf);font-weight:700;font-size:13px}
+  .gcs .gcap span:last-child{font-family:'Noto Sans KR',system-ui,sans-serif;font-weight:700;color:var(--sub);font-size:11px}
+  .gcs .tag{top:-11px;left:6px;border:2px solid var(--px);background:var(--sun);color:var(--px)}
+  .gcs .tag.lead{right:6px;background:var(--px);color:#fff}
+  .gteaser{filter:grayscale(.85);opacity:.92}
+  .gflag{transform-box:fill-box;transform-origin:0 50%;animation:gflagpx 1s steps(1) infinite}
+  .gsmoke{animation:gsmokepx 2.4s steps(5) infinite}
+  .gfire{transform-box:fill-box;transform-origin:50% 100%;animation:gfirepx .5s steps(1) infinite}
+  .gshield{animation:gshieldpx 1.6s steps(1) infinite}
+  @keyframes gflagpx{50%{transform:scaleX(.78)}}
+  @keyframes gsmokepx{0%{transform:translateY(5px);opacity:.9}100%{transform:translateY(-20px);opacity:0}}
+  @keyframes gfirepx{50%{transform:scaleX(-1)}}
+  @keyframes gshieldpx{50%{opacity:.45}}
+  @media(prefers-reduced-motion:reduce){.gflag,.gsmoke,.gfire,.gshield,.ghearts svg.last,.gprize::before,.gprize::after{animation:none!important}}
+
+  /* 믿음이에게 물어보기 */
+  .aibox{border-radius:0;border:2px solid var(--px);background:#fff8e0;box-shadow:0 5px 0 var(--pxs)}
+  .aibox .hd{font-family:var(--pf14);font-weight:400}
+  .aibox h4{font-family:var(--pf);font-weight:400;color:#8a6a1c;letter-spacing:.5px}
+  .aibox p,.aibox .tx{font-size:15px;color:var(--ink)}
+  .aibox .cc,.aibox details{border-radius:0;border:2px solid var(--line)}
+  .aibtn{border-radius:0;border-bottom:0;margin:3px 3px 20px;width:calc(100% - 6px);box-shadow:-3px 0 0 #0a1224,3px 0 0 #0a1224,0 -3px 0 #0a1224,0 3px 0 #0a1224,0 8px 0 0 var(--sun);transition:transform .05s}
+  .aibtn img{border-radius:0;border:3px solid var(--sun)}
+  .aibtn b{font-family:var(--pf);font-weight:700;font-size:18px;color:var(--sun);text-shadow:2px 2px 0 rgba(0,0,0,.45)}
+  .aibtn small{color:#eef0f5;font-size:13px}
+  .aispin{border-radius:0;animation-timing-function:steps(4)}
+  @media print{html,body{background:#fff}.card,.gcs{box-shadow:none;border:1px solid #999}}
+  `;
+  document.head.appendChild(st);
+})();
 
 </script>
 </body>
