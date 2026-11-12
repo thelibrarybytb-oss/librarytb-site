@@ -1966,9 +1966,10 @@ function gCastle(c, max){
 }
 function gWarHtml(war, myClan){
   if(!war || !war.clans || !war.clans.length){
-    const tz = (name, color) => `<div class="gcs gteaser">${gCastle({ name, color, emoji: "?", hp: 1, dmg: 0, shield: 0 }, 1)}<h3>${name}</h3><div class="gbar castle hp"><i style="width:100%"></i></div><div class="gcap"><span>곧 공개</span><span>주인을 기다리는 성</span></div></div>`;
-    return `<div class="gfield">${tz("???", "#1f6f8b")}${tz("???", "#b8902f")}</div>
-      <div class="gsay">${gArt("duo_01", "sm")}<div class="bb"><b>곧 클랜이 발표됩니다.</b><br>성 두 채가 주인을 기다리는 중. 지금 쌓는 공부 시간과 점수는 전쟁이 시작되면 그대로 무기가 됩니다.</div></div>`;
+    const live = `<div class="gcs mine"><span class="tag">입성 준비</span>${gCastle({ name: "일반고", color: "#1f6f8b", emoji: "🏫", hp: 1, dmg: 0, shield: 0 }, 1)}<h3>일반고</h3><div class="gbar castle hp"><i style="width:100%"></i></div><div class="gcap"><span>1000 / 1000</span><span>성문이 열리길 기다리는 중</span></div></div>`;
+    const tz = `<div class="gcs gteaser">${gCastle({ name: "자사고·기숙·특목고", color: "#b8902f", emoji: "?", hp: 1, dmg: 0, shield: 0 }, 1)}<h3 style="font-size:13px">자사고·기숙·특목고</h3><div class="gbar castle hp"><i style="width:100%"></i></div><div class="gcap"><span>곧 공개</span><span>상대 성</span></div></div>`;
+    return `<div class="gfield">${live}${tz}</div>
+      <div class="gsay">${gArt("duo_01", "sm")}<div class="bb"><b>일반고 성이 먼저 섰습니다.</b><br>상대는 자사고·기숙·특목고. 전쟁이 시작되면 지금 쌓는 공부 시간과 점수가 그대로 무기가 됩니다.</div></div>`;
   }
   const top = Math.max(...war.clans.map(c => c.hp)), lead = war.clans.filter(c => c.hp === top).length === 1 && war.clans.some(c => c.atk > 0 || c.pen > 0);
   return `<div class="gfield">${war.clans.map(c => {
