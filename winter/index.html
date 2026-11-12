@@ -1734,6 +1734,7 @@ const G_COLORS = ["#16243F", "#B8902F", "#b23b2e", "#2f7d4f", "#4f8fdd", "#7a4fb
 const G_KLASS = { sword: ["⚔️", "검사"], bow: ["🏹", "궁수"], magic: ["🔮", "마법사"], shield: ["🛡️", "방패병"] };
 const G_FACE = { m: "👨‍🎓", f: "👩‍🎓" };
 const gTitle = lv => lv >= 12 ? "영웅" : lv >= 8 ? "장군" : lv >= 5 ? "기사" : lv >= 3 ? "전사" : "수련생";
+const gArt = (k, cls) => `<img class="tbart ${cls || ""}" src="${IMG(k)}" alt="">`;
 const gSign = n => (n > 0 ? "+" : "−") + Math.abs(n);
 const gWeekStart = d => { const x = new Date(d + "T00:00:00Z"); return addDays(d, -((x.getUTCDay() + 6) % 7)); };
 const gNotReady = e => /tb_g_|PGRST202|function/i.test(String(e && e.message || e));
@@ -1838,6 +1839,16 @@ const gNotReady = e => /tb_g_|PGRST202|function/i.test(String(e && e.message || 
   @keyframes gpopin{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
   @keyframes gshieldp{0%,100%{opacity:.55}50%{opacity:1}}
   @media(prefers-reduced-motion:reduce){.gbox3,.gprize,.gshield{animation:none}}
+  .tbart{width:72px;height:96px;object-fit:cover;border-radius:12px;flex:0 0 72px;border:1px solid var(--line)}
+  .tbart.sm{width:54px;height:72px;flex-basis:54px}
+  .tbart.lg{width:104px;height:140px;flex-basis:104px}
+  .gbanner{display:flex;gap:12px;align-items:center;background:var(--navy);color:#fff;border-radius:14px;padding:12px;margin-bottom:12px;border-bottom:3px solid var(--gold)}
+  .gbanner b{display:block;font-size:19px;font-weight:900}.gbanner span{font-size:13px;color:#d8d2c0;line-height:1.45;display:block;margin-top:2px}
+  .gbanner .tbart{border-color:rgba(255,255,255,.25)}
+  .gsay{display:flex;gap:10px;align-items:center;margin:8px 0}
+  .gsay .bb{background:var(--soft);border-radius:12px;padding:9px 12px;font-size:14px;line-height:1.5;flex:1}
+  .gsay .bb b{color:var(--navy)}
+  .gteaser{filter:saturate(.35);opacity:.9}
   `;
   document.head.appendChild(st);
 })();
@@ -1852,20 +1863,25 @@ function gWinner(war){
   return w.length === 1 ? w[0] : null;
 }
 function gFigure(p, lv){
-  const a = p && p.avatar, col = esc((p && p.color) || "#9a958a"), skin = "#f6d3b0", hair = "#2b2118";
-  const hairM = `<path d="M24 34 Q22 14 40 14 Q58 14 56 34 Q52 25 40 25 Q28 25 24 34Z" fill="${hair}"/>`;
-  const hairF = `<path d="M21 56 Q16 12 40 13 Q64 12 59 56 Q57 40 54 31 Q47 24 40 24 Q33 24 26 31 Q23 40 21 56Z" fill="${hair}"/>`;
+  const a = p && p.avatar, col = esc((p && p.color) || "#9a958a"), sk = "#fde0c5", hr = a === "f" ? "#5b3a24" : "#2f2a26", dk = "#2b2118";
+  const eye = x => `<ellipse cx="${x}" cy="40.5" rx="3.7" ry="4.8" fill="${dk}"/><circle cx="${x + 1.3}" cy="38.4" r="1.5" fill="#fff"/><circle cx="${x - 1.2}" cy="42.2" r=".8" fill="#fff"/>`;
+  if(!a) return `<svg viewBox="0 0 80 80" aria-hidden="true"><path d="M26 80 Q26 60 40 60 Q54 60 54 80Z" fill="#b9b3a4"/><circle cx="40" cy="36" r="22" fill="#d9d3c4"/><text x="40" y="45" text-anchor="middle" font-size="26" font-weight="900" fill="#8d8573">?</text></svg>`;
   return `<svg viewBox="0 0 80 80" aria-hidden="true">
-    ${lv >= 3 ? `<path d="M18 80 Q20 50 40 50 Q60 50 62 80Z" fill="#B8902F"/>` : ""}
-    ${a === "f" ? hairF : ""}
-    <path d="M23 80 Q23 54 40 54 Q57 54 57 80Z" fill="${col}"/>
-    <path d="M34 55 L40 63 L46 55Z" fill="#fff"/>
-    <rect x="36" y="44" width="8" height="10" rx="3" fill="${skin}"/>
-    <circle cx="40" cy="34" r="14.5" fill="${skin}"/>
-    ${a === "m" ? hairM : a === "f" ? `<path d="M25 33 Q26 17 40 17 Q54 17 55 33 Q48 25 40 26 Q32 25 25 33Z" fill="${hair}"/>` : ""}
-    ${a ? `<circle cx="34.5" cy="36" r="1.9" fill="#2b2118"/><circle cx="45.5" cy="36" r="1.9" fill="#2b2118"/><path d="M35 42 Q40 46 45 42" stroke="#a5553f" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="30" cy="40" r="2.6" fill="#f3a9a0" opacity=".55"/><circle cx="50" cy="40" r="2.6" fill="#f3a9a0" opacity=".55"/>`
-      : `<text x="40" y="41" text-anchor="middle" font-size="18" font-weight="900" fill="#8d8573">?</text>`}
-    ${lv >= 8 ? `<path d="M28 17 L31 6 L36 13 L40 4 L44 13 L49 6 L52 17Z" fill="#e0bd5a" stroke="#8a6a1c" stroke-width="1"/>` : lv >= 5 ? `<path d="M26 26 Q27 10 40 10 Q53 10 54 26 Q47 20 40 20 Q33 20 26 26Z" fill="#9aa3ad" stroke="#5d6670" stroke-width="1"/><rect x="38.5" y="5" width="3" height="8" rx="1.5" fill="#b23b2e"/>` : ""}
+    ${lv >= 3 ? `<path d="M20 80 Q22 58 40 58 Q58 58 60 80Z" fill="#B8902F"/><path d="M33 61 L40 66 L47 61" fill="none" stroke="#8a6a1c" stroke-width="1.5"/>` : ""}
+    ${a === "f" ? `<circle cx="13" cy="44" r="9.5" fill="${hr}"/><circle cx="67" cy="44" r="9.5" fill="${hr}"/><path d="M17 40 Q14 10 40 10 Q66 10 63 40Z" fill="${hr}"/>` : `<path d="M17 38 Q14 10 40 10 Q66 10 63 38Z" fill="${hr}"/>`}
+    <path d="M27 80 Q27 61 40 61 Q53 61 53 80Z" fill="${col}"/>
+    <ellipse cx="40" cy="62.5" rx="9" ry="3.6" fill="#000" opacity=".16"/>
+    <path d="M37 64 V70 M43 64 V70" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="18.5" cy="39" r="3.6" fill="${sk}"/><circle cx="61.5" cy="39" r="3.6" fill="${sk}"/>
+    <circle cx="40" cy="36" r="22" fill="${sk}"/>
+    ${a === "f"
+      ? `<path d="M18 37 Q15 12 40 12 Q65 12 62 37 Q58 27 52 24 Q46 31 40 24 Q34 31 28 24 Q22 27 18 37Z" fill="${hr}"/><path d="M12 36 l-5 -4 v8Z M12 36 l5 -4 v8Z" fill="#ff8fa3"/><circle cx="12" cy="36" r="1.8" fill="#e85d75"/><path d="M68 36 l-5 -4 v8Z M68 36 l5 -4 v8Z" fill="#ff8fa3"/><circle cx="68" cy="36" r="1.8" fill="#e85d75"/>`
+      : `<path d="M18 35 Q15 12 40 12 Q65 12 62 35 Q58 25 50 22 Q45 29 38 24 Q31 29 26 23 Q20 27 18 35Z" fill="${hr}"/><path d="M38 13 Q42 3 51 7 Q45 9 45 14Z" fill="${hr}"/>`}
+    ${eye(31)}${eye(49)}
+    <ellipse cx="24.5" cy="47" rx="4.2" ry="2.5" fill="#ff9aa2" opacity=".65"/><ellipse cx="55.5" cy="47" rx="4.2" ry="2.5" fill="#ff9aa2" opacity=".65"/>
+    <path d="M36 48.5 Q40 53.5 44 48.5Z" fill="#c0604a"/>
+    ${lv >= 8 ? `<path d="M27 14 L29 2 L35 9 L40 0 L45 9 L51 2 L53 14Z" fill="#f2cf63" stroke="#8a6a1c" stroke-width="1.2" stroke-linejoin="round"/><circle cx="40" cy="9" r="1.8" fill="#e2574c"/>`
+      : lv >= 5 ? `<path d="M19 27 Q40 17 61 27" fill="none" stroke="#e2574c" stroke-width="4" stroke-linecap="round"/><path d="M40 15 l2.2 4.6 5 .6 -3.7 3.4 1 5 -4.5 -2.5 -4.5 2.5 1 -5 -3.7 -3.4 5 -.6Z" fill="#f2cf63" stroke="#8a6a1c" stroke-width=".8"/>` : ""}
   </svg>`;
 }
 function gAvatar(p, sm, lv){
@@ -1908,7 +1924,11 @@ function gCastle(c, max){
     <g transform="translate(60 6)">${arrows}</g></svg>`;
 }
 function gWarHtml(war, myClan){
-  if(!war || !war.clans || !war.clans.length) return `<p class="muted">아직 클랜이 없습니다. 원장님이 클랜을 만들면 전쟁이 시작됩니다.</p>`;
+  if(!war || !war.clans || !war.clans.length){
+    const tz = (name, color) => `<div class="gcs gteaser">${gCastle({ name, color, emoji: "?", hp: 1, dmg: 0, shield: 0 }, 1)}<h3>${name}</h3><div class="gbar castle hp"><i style="width:100%"></i></div><div class="gcap"><span>곧 공개</span><span>주인을 기다리는 성</span></div></div>`;
+    return `<div class="gfield">${tz("???", "#1f6f8b")}${tz("???", "#b8902f")}</div>
+      <div class="gsay">${gArt("duo_01", "sm")}<div class="bb"><b>곧 클랜이 발표됩니다.</b><br>성 두 채가 주인을 기다리는 중. 지금 쌓는 공부 시간과 점수는 전쟁이 시작되면 그대로 무기가 됩니다.</div></div>`;
+  }
   const top = Math.max(...war.clans.map(c => c.hp)), lead = war.clans.filter(c => c.hp === top).length === 1 && war.clans.some(c => c.atk > 0 || c.pen > 0);
   return `<div class="gfield">${war.clans.map(c => {
     const pct = Math.min(100, Math.max(0, Math.round(c.hp / war.max * 100)));
@@ -1936,8 +1956,8 @@ function gStudyCard(m){
   const next = ms.find(x => x > st.today);
   return `<div class="card gstudy${st.running ? " on" : ""}">
     <h2>⏱ 공부 타이머 ${st.running ? `<span class="badge cleared">공부 중</span>` : ""}</h2>
-    <div class="gclock" id="gclock">${gClock(gStudySec(st))}</div>
-    <p class="muted" style="text-align:center">오늘 공부 시간 · 이번 주 ${gHM(st.week)}</p>
+    <div style="display:flex;gap:12px;align-items:center">${gArt(st.running ? "mideum_03" : "mideum_09", "sm")}<div style="flex:1"><div class="gclock" id="gclock" style="text-align:left;font-size:38px">${gClock(gStudySec(st))}</div>
+    <p class="muted">오늘 공부 시간 · 이번 주 ${gHM(st.week)}${st.running ? "<br>믿음이도 옆에서 같이 공부 중" : ""}</p></div></div>
     <button class="btn ${st.running ? "ghost" : "gold"}" id="gtimer" style="margin-top:10px">${st.running ? "■ 공부 끝 (멈추기)" : "▶ 공부 시작"}</button>
     <p class="muted" style="margin-top:8px">${shield ? `🛡️ 방패병: 공부 1시간마다 우리 성 보호막 +${st.shield}` : `${(G_KLASS[m.profile.klass] || ["⚔️"])[0]} 공부 1시간마다 공격 +${st.atk}`} · 한 번에 최대 ${st.cap}분까지 인정되고, 넘으면 자동으로 멈춥니다.</p>
     ${last ? `<div class="gms"><div class="gbar xp"><i style="width:${Math.min(100, Math.round(st.today / last * 100))}%"></i></div>
@@ -1965,7 +1985,7 @@ function gStudyBind(m){
     await new Promise(res => setTimeout(res, 1300));
     if(!r){ toast("뽑기권이 없습니다"); await gLoad(true); return renderGame(); }
     const ic = r.kind === "none" ? "💨" : r.kind === "heal" ? "❤️" : r.kind === "coupon" ? "🎟" : "⚔️";
-    box.innerHTML = `<div class="gprize ${r.kind}"><div class="ic">${ic}</div><b>${esc(r.name)}</b><button class="btn sm" id="gdrawok" style="margin-top:8px">${r.tickets > 0 ? `확인 (남은 뽑기권 ${r.tickets}장)` : "확인"}</button></div>`;
+    box.innerHTML = `<div class="gprize ${r.kind}">${gArt(r.kind === "none" ? "director_06" : "mideum_07", "lg")}<div class="ic" style="font-size:28px">${ic}</div><b>${esc(r.name)}</b><button class="btn sm" id="gdrawok" style="margin-top:8px">${r.tickets > 0 ? `확인 (남은 뽑기권 ${r.tickets}장)` : "확인"}</button></div>`;
     $("#gdrawok").onclick = async () => { await gLoad(true); renderGame(); };
   };
 }
@@ -1979,6 +1999,7 @@ function gPicker(m){
   const p = Object.assign({ avatar: "m", klass: "sword", color: G_COLORS[0] }, m.profile.avatar ? m.profile : {});
   const draw = () => {
     $(".wrap").innerHTML = `<div class="card"><h2>내 캐릭터 고르기</h2>
+      <div class="gsay">${gArt("director_05", "sm")}<div class="bb"><b>전쟁에 나갈 캐릭터부터 골라라.</b><br>무기에 따라 공부 시간이 공격이 되기도 하고 성 보호막이 되기도 한다.</div></div>
       <div style="display:flex;justify-content:center;margin:8px 0 14px">${gAvatar(p)}</div>
       <p class="muted">캐릭터</p><div class="gpick">${Object.entries(G_FACE).map(([k, f]) => `<button data-a="${k}" class="${p.avatar === k ? "on" : ""}">${f} ${k === "m" ? "남학생" : "여학생"}</button>`).join("")}</div>
       <p class="muted">무기 · 방패병은 공부 시간이 성 보호막이 되고, 나머지는 공격력이 됩니다</p><div class="gpick">${Object.entries(G_KLASS).map(([k, v]) => `<button data-k="${k}" class="${p.klass === k ? "on" : ""}">${v[0]} ${v[1]}</button>`).join("")}</div>
@@ -2025,7 +2046,8 @@ async function renderGame(){
   const coupons = m.coupons || [], live = coupons.filter(c => !c.used);
   const byDay = {}; ents.forEach(e => (byDay[e.day] = byDay[e.day] || []).push(e));
   $(".wrap").innerHTML = `
-    ${m.dog_new ? `<div class="card" style="border-color:var(--gold);background:#fffaf0;text-align:center"><img src="${IMG(EMO.wow[0])}" style="width:120px"><h2 style="font-size:18px">믿음이가 합류했습니다!</h2><p class="muted">${m.dog_streak}일 연속 달성. 이제 믿음이가 함께 싸웁니다.</p></div>` : ""}
+    ${m.dog_new ? `<div class="card" style="border-color:var(--gold);background:#fffaf0;text-align:center">${gArt("duo_02", "lg")}<h2 style="font-size:18px;margin-top:8px">믿음이가 합류했습니다!</h2><p class="muted">${m.dog_streak}일 연속 달성. 이제 믿음이가 함께 싸웁니다.</p></div>` : ""}
+    <div class="gbanner">${gArt(lw && lw.id === m.profile.clan ? "duo_10" : "duo_02", "sm")}<div><b>윈터 공성전</b><span>${m.profile.clan ? (gWinner(m.war) ? (gWinner(m.war).id === m.profile.clan ? "우리 클랜이 앞서는 중. 끝까지 지켜라." : "지금은 밀리는 중. 오늘 공부로 뒤집자.") : "아직 승부가 안 났다. 먼저 치는 쪽이 이긴다.") : "공부한 만큼 성을 지키고, 상대 성을 무너뜨린다."}</span></div></div>
     ${gStudyCard(m)}
     <div class="card">
       <div class="ghero">${gAvatar(m.profile, false, m.level)}<div style="flex:1;min-width:0">
@@ -2036,7 +2058,7 @@ async function renderGame(){
       </div></div>
       <div style="margin-top:12px"><div class="gcap"><span>❤️ 이번 주 체력</span><span>${m.hp} / ${m.hp_max}</span></div>
         <div class="gbar hp ${gHpClass(m.hp, m.hp_max)}"><i style="width:${hpPct}%"></i></div>
-        ${m.hp <= 0 ? `<p class="muted" style="color:var(--bad);font-weight:800">체력이 0입니다. 원장 면담 대상입니다.</p>` : `<p class="muted">벌점을 받으면 깎이고, 월요일마다 회복됩니다.</p>`}</div>
+        ${m.hp <= 0 ? `<div class="gsay">${gArt("director_03", "sm")}<div class="bb"><b style="color:var(--bad)">체력이 0이다.</b><br>원장실로 와라. 얘기 좀 하자.</div></div>` : `<p class="muted">벌점을 받으면 깎이고, 월요일마다 회복됩니다.</p>`}</div>
       <div style="margin-top:8px"><span class="gpill fire">🔥 연속 ${m.streak}일</span><span class="gpill">이번 주 공격 ${myAtk}</span>${myPen ? `<span class="gpill" style="background:#fde8e4;color:var(--bad)">벌점 ${myPen}</span>` : ""}</div>
       ${m.dog ? `<div class="gdog"><img src="${gDogImg(m.hp, m.hp_max)}" alt="믿음이"><div><b style="color:var(--navy)">믿음이</b><div class="muted">${m.hp / m.hp_max <= 0.3 ? "체력이 바닥이라 믿음이가 지쳤습니다." : m.hp / m.hp_max <= 0.6 ? "믿음이가 걱정하고 있습니다." : "믿음이가 신나게 따라옵니다."}</div></div></div>`
         : `<div class="gdog"><div class="q">?</div><div><b style="color:var(--navy)">동료가 기다리고 있습니다</b><div class="muted">${m.dog_streak}일 연속 가점을 받으면 합류합니다. 지금 ${Math.min(m.streak, m.dog_streak)} / ${m.dog_streak}일</div></div></div>`}
@@ -2116,6 +2138,7 @@ async function gBoardInject(){
   const draw = () => {
     const bb = G.board, alert = bb.students.filter(s => s.hp / bb.cfg.hp_max <= 0.3), lw = gWinner(bb.last_war);
     host.innerHTML = `<div class="card"><h2>⚔️ 점수판 · ${fmtDay(T.day)} <span class="muted" style="font-weight:400">· 버튼을 한 번 누르면 바로 기록됩니다</span></h2>
+      <div class="gsay">${gArt("director_09", "sm")}<div class="bb"><b>본 대로 바로 누른다.</b><br>벌점은 그 학생 체력과 클랜 성을 같이 깎고, 가점은 상대 성을 친다. 잘못 눌렀으면 ✕로 취소.</div></div>
       ${alert.length ? `<div class="msg" style="border-left-color:var(--bad)"><b style="color:var(--bad)">체력 경보</b>${alert.map(s => `${esc(s.name)} (${s.hp}/${bb.cfg.hp_max}${s.hp <= 0 ? ", 면담 대상" : ""})`).join(" · ")}</div>` : ""}
       ${bb.students.map(s => gStudentBlock(s, bb)).join("") || `<p class="muted">학생이 없습니다</p>`}</div>
       <div class="card"><h2>이번 주 공성전</h2>${lw ? `<p class="muted" style="margin-bottom:6px">지난주 승리: <b style="color:var(--navy)">${esc(lw.emoji)} ${esc(lw.name)}</b></p>` : ""}${gWarHtml(bb.war, null)}
@@ -2165,7 +2188,7 @@ async function renderGameAdmin(){
         <input data-f="pts" type="number" value="${Math.abs(r.pts)}" aria-label="점수"><label style="font-size:11px;text-align:center">${r.kind === "penalty" ? "벌점" : r.auto ? "자동" : "가점"}<br><input data-f="active" type="checkbox" ${r.active ? "checked" : ""} style="width:auto"></label><button class="btn sm" data-rsv="1">저장</button></div>`).join("")}
       <div class="grow" data-rk="" style="margin-top:8px"><input data-f="emoji" placeholder="🙅" aria-label="새 항목 이모지"><input data-f="label" placeholder="새 항목 (예: 휴대폰 사용)" aria-label="새 항목 이름"><input data-f="pts" type="number" placeholder="점수" aria-label="새 항목 점수">
         <select data-f="kind" aria-label="종류"><option value="penalty">벌점</option><option value="reward">가점</option></select><button class="btn sm gold" data-rsv="1">추가</button></div></div>
-    <div class="card gset"><h2>기준값</h2>${cfgRows.map(([k, n]) => `<label>${n}<input type="number" data-cfg="${k}" value="${b.cfg[k]}"></label>`).join("")}<label>뽑기권: 하루 공부 시간(분, 쉼표로 구분)<input data-ms="1" value="${(b.cfg.study_milestones || []).join(",")}" style="width:130px"></label><button class="btn" id="cfgsv" style="margin-top:10px">기준값 저장</button></div>
+    <div class="card gset"><h2>기준값</h2>${cfgRows.map(([k, n]) => `<label>${n}<input type="number" data-cfg="${k}" value="${b.cfg[k]}"></label>`).join("")}<label>믿음이(AI) 질문: 학생 1명 하루 횟수<input type="number" data-ai-n="1" value="${b.cfg.ai_daily ?? 5}"></label><label>뽑기권: 하루 공부 시간(분, 쉼표로 구분)<input data-ms="1" value="${(b.cfg.study_milestones || []).join(",")}" style="width:130px"></label><button class="btn" id="cfgsv" style="margin-top:10px">기준값 저장</button></div>
     <div class="card"><h2>뽑기 상자</h2><p class="muted">비중이 클수록 잘 나옵니다. 값은 공격 점수·체력, 쿠폰이면 쿠폰 종류 번호(${b.coupon_types.map(t => `${t.id}=${esc(t.name)}`).join(", ") || "없음"})입니다. 학생 화면에 확률이 그대로 공개됩니다.</p>
       <div class="grow l6 muted" style="font-size:11px;font-weight:800"><span>이름</span><span>종류</span><span>값</span><span>비중</span><span>켜기</span><span></span></div>
       ${(b.loot || []).map(l => `<div class="grow l6" data-lk="${l.id}"><input data-f="name" value="${esc(l.name)}" aria-label="아이템 이름"><select data-f="kind" aria-label="종류">${Object.entries(LK).map(([k, n]) => `<option value="${k}" ${l.kind === k ? "selected" : ""}>${n}</option>`).join("")}</select>
@@ -2195,7 +2218,8 @@ async function renderGameAdmin(){
   });
   $("#cfgsv").onclick = async () => { const o = {}; document.querySelectorAll("[data-cfg]").forEach(el => o[el.dataset.cfg] = parseInt(el.value, 10) || 0);
     o.study_milestones = document.querySelector("[data-ms]").value.split(",").map(x => parseInt(x, 10)).filter(x => x > 0);
-    try{ const ok = await rpc("tb_g_cfg_save", { p_pass: T.pass, p_cfg: o }); if(!ok) throw 0; toast("기준값 저장"); re(); }catch(e){ toast("저장 실패"); } };
+    try{ const ok = await rpc("tb_g_cfg_save", { p_pass: T.pass, p_cfg: o }); if(!ok) throw 0;
+      const an = document.querySelector("[data-ai-n]"); if(an && b.cfg.ai_daily != null){ try{ await rpc("tb_ai_limit", { p_pass: T.pass, p_n: parseInt(an.value, 10) || 0 }); }catch(e){} } toast("기준값 저장"); re(); }catch(e){ toast("저장 실패"); } };
   document.querySelectorAll("[data-lsv]").forEach(btn => btn.onclick = async () => {
     const row = btn.closest("[data-lk]"), id = row.dataset.lk; if(!val(row, "name")) return toast("아이템 이름을 넣어 주세요");
     try{ const n = await rpc("tb_g_loot_save", { p_pass: T.pass, p_id: id ? +id : null, p_name: val(row, "name"), p_kind: val(row, "kind"), p_value: parseInt(val(row, "value"), 10) || 0, p_weight: parseInt(val(row, "weight"), 10) || 0, p_active: id ? val(row, "active") : true }); if(!n) throw 0; toast("저장"); re(); }catch(e){ toast("저장 실패"); }
@@ -2275,6 +2299,91 @@ render = function(){
 };
 if(location.hash.startsWith("#r/") || location.hash === "#ta") render();
 else if(typeof S !== "undefined" && S.mode === "home" && W.tab === "game") render();
+
+// ===================== 사진 질문 → 믿음이(AI) 해설 =====================
+const ASK_URL = (/\.netlify\.app$/.test(location.hostname) ? "" : "https://tb-winter.netlify.app") + "/.netlify/functions/ask-background";
+const AI = { list: null, wait: {} };
+const AI_ERR = { nokey: "AI 연결 설정이 아직 안 됐습니다. 원장님께 알려 주세요.", badkey: "AI 연결 키가 맞지 않습니다. 원장님께 알려 주세요.", quota: "AI 사용량이 잠시 막혔습니다. 조금 뒤에 다시 해 보세요.", empty: "사진이나 메모가 있어야 물어볼 수 있습니다.", openai: "답을 만들지 못했습니다. 다시 눌러 보세요.", db: "저장에 실패했습니다. 다시 눌러 보세요.", timeout: "시간이 너무 오래 걸립니다. 잠시 뒤 오답 탭을 다시 열어 보세요." };
+(function(){
+  const st = document.createElement("style");
+  st.textContent = `
+  .aibox{border:1.5px solid var(--gold);background:#fffaf0;border-radius:12px;padding:12px;margin:8px 0 14px}
+  .aibox .hd{display:flex;gap:8px;align-items:center;font-weight:900;color:var(--navy);font-size:15px}
+  .aibox .hd img{width:40px;height:40px;object-fit:contain}
+  .aibox h4{font-size:12px;letter-spacing:1px;color:var(--gold);font-weight:900;margin:12px 0 4px}
+  .aibox p,.aibox .tx{font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+  .aibox .cc{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0}
+  .aibox .cc b{color:var(--navy)}
+  .aibox .stp{border-left:4px solid var(--navy);padding:2px 0 2px 10px;margin:8px 0}
+  .aibox .stp b{display:block;color:var(--navy);font-size:14px}
+  .aibox details{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0}
+  .aibox summary{cursor:pointer;font-weight:800;color:var(--navy);font-size:14px}
+  .aiask{margin:0 0 12px}
+  .aispin{display:inline-block;width:14px;height:14px;border:2px solid var(--gold);border-top-color:transparent;border-radius:50%;animation:aispin .8s linear infinite;vertical-align:-2px;margin-right:6px}
+  @keyframes aispin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){.aispin{animation:none}}
+  `;
+  document.head.appendChild(st);
+})();
+function aiHtml(a, staff){
+  if(!a) return "";
+  if(a.pending) return `<div class="aibox"><div class="hd"><span class="aispin"></span>믿음이가 문제를 읽고 있어… (1분쯤 걸려)</div></div>`;
+  if(a.error) return `<div class="aibox"><div class="hd">🐾 ${esc(AI_ERR[a.error] || AI_ERR.openai)}</div></div>`;
+  if(a.unreadable) return `<div class="aibox"><div class="hd"><img src="${IMG(EMO.hmm[0])}" alt="">사진을 제대로 못 읽었어</div><p>${esc(a.note || "문제가 잘 보이게 다시 찍어서 올려 줘.")}</p></div>`;
+  return `<div class="aibox"><div class="hd"><img src="${IMG(EMO.joy[0])}" alt="">믿음이랑 끝내는 ${esc(a.title || "이 문제")}</div>
+    <p class="muted" style="font-size:11px">AI가 만든 해설입니다. 이상하면 조교 선생님께 물어보세요.</p>
+    <h4>PART 0 · 이 문제의 정체</h4><p>${esc(a.identity)}</p>
+    ${(a.concepts || []).length ? `<h4>PART 1 · 꼭 필요한 개념</h4>${a.concepts.map((c, i) => `<div class="cc"><b>개념 ${i + 1} · ${esc(c.name)}</b><div class="tx">${esc(c.explain)}</div></div>`).join("")}` : ""}
+    ${(a.steps || []).length ? `<h4>PART 2 · 풀이</h4>${a.steps.map((s, i) => `<div class="stp"><b>STEP ${i + 1} · ${esc(s.title)}</b><div class="tx">${esc(s.body)}</div></div>`).join("")}` : ""}
+    ${a.answer ? `<details${staff ? " open" : ""}><summary>정답 보기</summary><div class="tx">${esc(a.answer)}</div></details>` : ""}
+    ${a.trap ? `<h4>여기서 자주 틀려</h4><p>${esc(a.trap)}</p>` : ""}
+    ${(a.variants || []).length ? `<h4>PART 3 · 변형문제</h4>${a.variants.map((v, i) => `<div class="cc"><b>변형 ${i + 1}</b><div class="tx">${esc(v.q)}</div><details${staff ? " open" : ""}><summary>정답·풀이</summary><div class="tx"><b>${esc(v.a)}</b>\n${esc(v.sol)}</div></details></div>`).join("")}<p class="muted">변형문제를 풀어서 조교 선생님께 보여 주면 가점을 받습니다.</p>` : ""}
+  </div>`;
+}
+async function aiInjectStudent(){
+  if(W.tab !== "wrong" || !W.data) return;
+  const today = kstToday(), ws = W.data.wrongs || [];
+  const ids = [...ws.filter(w => w.day !== today && (w.status === "analyzed" || w.status === "redo")), ...ws.filter(w => w.day === today)].map(w => w.id);
+  const cards = [...document.querySelectorAll("#app .wrap .wcard")]; if(!cards.length || cards.length !== ids.length) return;
+  try{ AI.list = await rpc("tb_ai_list", { p_code: S.code }); }catch(e){ return; }
+  if(!AI.list || W.tab !== "wrong") return;
+  let pending = false;
+  cards.forEach((card, i) => {
+    const id = ids[i], a = AI.list.items[id]; card.parentNode.querySelectorAll(`[data-ai="${id}"]`).forEach(x => x.remove());
+    const box = document.createElement("div"); box.dataset.ai = id;
+    if(a && a.pending) pending = true;
+    box.innerHTML = a && !a.error ? aiHtml(a) : `${a ? aiHtml(a) : ""}<div class="aiask"><button class="btn sm gold" data-ask="${id}" ${AI.list.left > 0 ? "" : "disabled"}>🐶 믿음이에게 물어보기</button> <span class="muted">오늘 남은 질문 ${AI.list.left}번</span></div>`;
+    card.insertAdjacentElement("afterend", box);
+  });
+  document.querySelectorAll("[data-ask]").forEach(btn => btn.onclick = async () => {
+    const id = +btn.dataset.ask; btn.disabled = true;
+    document.querySelector(`[data-ai="${id}"]`).innerHTML = aiHtml({ pending: true });
+    try{ await fetch(ASK_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ code: S.code, id }) }); }catch(e){}
+    aiPoll(id, 0);
+  });
+  if(pending) ids.forEach(id => { if(AI.list.items[id] && AI.list.items[id].pending) aiPoll(id, 0); });
+}
+function aiPoll(id, n){
+  clearTimeout(AI.wait[id]);
+  AI.wait[id] = setTimeout(async () => {
+    if(W.tab !== "wrong" || S.mode !== "home") return;
+    let l = null; try{ l = await rpc("tb_ai_list", { p_code: S.code }); }catch(e){}
+    const a = l && l.items[id], box = document.querySelector(`[data-ai="${id}"]`); if(!box) return;
+    if(a && !a.pending){ AI.list = l; return aiInjectStudent(); }
+    if(!a && n >= 4){ box.innerHTML = aiHtml({ error: l && l.left <= 0 ? "quota" : "openai" }); return; }   // 접수 자체가 안 됨
+    if(n >= 40){ box.innerHTML = aiHtml({ error: "timeout" }); return; }
+    aiPoll(id, n + 1);
+  }, 3000);
+}
+const _renderWrongBase = renderWrong;
+renderWrong = async function(){ await _renderWrongBase(); await aiInjectStudent(); };
+const _gStudentInjectBase = gStudentInject;
+gStudentInject = async function(){
+  await _gStudentInjectBase();
+  let m = null; try{ m = await rpc("tb_ai_staff", { p_pass: T.pass, p_code: T.sel }); }catch(e){ return; }
+  if(!m) return;
+  document.querySelectorAll("[data-w]").forEach(card => { const a = m[card.dataset.w]; if(a && !card.querySelector(".aibox")) card.insertAdjacentHTML("beforeend", aiHtml(a, true)); });
+};
 
 </script>
 </body>
